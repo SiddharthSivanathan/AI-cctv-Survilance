@@ -5,12 +5,21 @@ import { Camera as CameraIcon, Loader2 } from 'lucide-react';
 import { Button } from '@visionops/ui';
 import { streamsApi } from '@/features/streams/api';
 import { connectWhep, type WhepSession } from '@/features/streams/whep';
+import { DetectionOverlay } from '@/components/detection-overlay';
 
 type PlayerState = 'idle' | 'connecting' | 'live' | 'reconnecting' | 'error';
 
 const MAX_RETRIES = 5;
 
-export function LivePlayer({ cameraId, autoStart = false }: { cameraId: string; autoStart?: boolean }) {
+export function LivePlayer({
+  cameraId,
+  autoStart = false,
+  showDetections = true,
+}: {
+  cameraId: string;
+  autoStart?: boolean;
+  showDetections?: boolean;
+}) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const sessionRef = useRef<WhepSession | null>(null);
   const retriesRef = useRef(0);
@@ -116,6 +125,10 @@ export function LivePlayer({ cameraId, autoStart = false }: { cameraId: string; 
             </>
           )}
         </div>
+      )}
+
+      {state === 'live' && showDetections && (
+        <DetectionOverlay cameraId={cameraId} enabled />
       )}
 
       {state === 'live' && (
