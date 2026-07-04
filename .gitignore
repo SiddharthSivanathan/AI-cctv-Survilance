@@ -33,6 +33,7 @@ htmlcov/
 *.pem
 *.key
 secrets/
+apps/api/keys/
 
 # ---------- Docker ----------
 docker-compose.override.yml

@@ -6,6 +6,7 @@ per-request tenant (RLS) context is set here starting in Phase 3.
 
 from collections.abc import AsyncGenerator
 
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -34,10 +35,29 @@ AsyncSessionLocal = async_sessionmaker(
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    """FastAPI dependency that yields a database session."""
+    """FastAPI dependency that yields a database session.
+
+    Commits on successful request completion; rolls back on any exception.
+    This gives every request a single, well-defined transaction boundary.
+    """
     async with AsyncSessionLocal() as session:
         try:
             yield session
+            await session.commit()
         except Exception:
             await session.rollback()
             raise
+
+
+async def set_org_context(session: AsyncSession, organization_id: str | None) -> None:
+    """Set the transaction-local tenant context used by Row-Level Security.
+
+    Uses ``set_config(..., is_local => true)`` which is equivalent to
+    ``SET LOCAL``: the value is scoped to the current transaction. RLS policies
+    read it via ``current_setting('app.current_org', true)``.
+    """
+    value = str(organization_id) if organization_id is not None else ""
+    await session.execute(
+        text("SELECT set_config('app.current_org', :org, true)"),
+        {"org": value},
+    )

@@ -28,12 +28,27 @@ class Settings(BaseSettings):
     api_v1_prefix: str = Field(default="/api/v1")
     project_name: str = Field(default="VisionOps AI")
     cors_origins: str = Field(default="http://localhost:3000")
+    frontend_url: str = Field(default="http://localhost:3000")
 
     # Security
     secret_key: str = Field(default="change-me-in-production")
     jwt_algorithm: str = Field(default="RS256")
     access_token_expire_minutes: int = Field(default=15)
     refresh_token_expire_days: int = Field(default=30)
+    # RS256 keys: provide inline PEM or a filesystem path. In non-production,
+    # an ephemeral keypair is generated if neither is set (see core.security.jwt).
+    jwt_private_key: str | None = Field(default=None)
+    jwt_public_key: str | None = Field(default=None)
+    jwt_private_key_path: str | None = Field(default=None)
+    jwt_public_key_path: str | None = Field(default=None)
+
+    # Email verification / password reset
+    email_verification_expire_hours: int = Field(default=24)
+    password_reset_expire_hours: int = Field(default=2)
+    email_from: str = Field(default="no-reply@visionops.ai")
+
+    # Auth rate limits (requests per window, for slowapi)
+    auth_rate_limit: str = Field(default="10/minute")
 
     # Database
     database_url: str = Field(

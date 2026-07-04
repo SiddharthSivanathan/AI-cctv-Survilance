@@ -14,9 +14,7 @@ from sqlalchemy.pool import NullPool
 
 from app.core.config import get_settings
 from app.db.base import Base
-
-# Phase 3+: import model modules so their tables register on Base.metadata.
-# e.g. from app.models import organization, user  # noqa: F401
+from app import models  # noqa: F401  (registers all tables on Base.metadata)
 
 config = context.config
 

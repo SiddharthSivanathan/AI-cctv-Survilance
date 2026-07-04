@@ -27,7 +27,22 @@ pytest -q                          # tests
 ruff check app tests && mypy app   # lint + types
 ```
 
-## Endpoints (Phase 2)
-- `GET /health` — liveness
-- `GET /ready` — readiness (Postgres + Redis)
-- `GET /docs` — Swagger UI · `GET /openapi.json`
+## Endpoints
+Health: `GET /health` (liveness) · `GET /ready` (Postgres + Redis) · `GET /docs`.
+
+Auth (`/api/v1/auth`, Phase 3):
+`POST /register` · `POST /verify-email` · `POST /resend-verification` · `POST /login` ·
+`POST /refresh` · `POST /logout` · `POST /forgot-password` · `POST /reset-password` · `GET /me`.
+
+Organizations (`/api/v1/organizations`): `POST /` (create company / onboarding) · `GET /current`.
+
+## Auth model (V1)
+Email + password (Argon2id). RS256 JWT access + rotating refresh tokens (reuse
+detection). Hard email-verification gate (24h link). One organization per user
+(Owner). Tenant isolation via Postgres RLS + per-request `app.current_org`.
+See [ADR 0002](../../docs/adr/0002-auth-and-multitenancy.md).
+
+## Local keys
+`bash scripts/generate_keys.sh` writes an RS256 keypair to `apps/api/keys/`
+(gitignored). In dev, an ephemeral keypair is generated automatically if none
+is configured.

@@ -1,18 +1,21 @@
 """FastAPI application entrypoint.
 
-Wires configuration, logging, middleware, and routers. No business logic
-lives here — it is composition only (Clean Architecture: frameworks layer).
+Wires configuration, logging, middleware, error handlers, and routers. No
+business logic lives here — composition only (Clean Architecture: frameworks
+layer).
 """
 
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from app import __version__
 from app.api.v1 import health
 from app.api.v1.router import api_router
 from app.core.config import get_settings
+from app.core.error_handlers import register_error_handlers
 from app.core.logging import configure_logging, get_logger
 
 settings = get_settings()
@@ -20,9 +23,24 @@ configure_logging()
 logger = get_logger(__name__)
 
 
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Attach baseline security headers to every response."""
+
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["X-XSS-Protection"] = "0"
+        if settings.is_production:
+            response.headers["Strict-Transport-Security"] = (
+                "max-age=31536000; includeSubDomains"
+            )
+        return response
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    """Application startup/shutdown lifecycle."""
     logger.info("api_startup", environment=settings.environment, version=__version__)
     yield
     logger.info("api_shutdown")
@@ -38,6 +56,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
@@ -45,6 +64,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+register_error_handlers(app)
 
 # Liveness/readiness probes at the root (K8s/Docker conventions).
 app.include_router(health.router)

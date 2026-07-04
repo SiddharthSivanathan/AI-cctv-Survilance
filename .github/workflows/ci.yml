@@ -29,12 +29,51 @@ jobs:
       - run: pnpm --filter @visionops/utils test
       - run: pnpm --filter @visionops/web build
 
-  python:
-    name: Backend (Python)
+  api:
+    name: API (Python)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: visionops
+          POSTGRES_PASSWORD: visionops
+          POSTGRES_DB: visionops
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U visionops"
+          --health-interval 10s --health-timeout 5s --health-retries 5
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s --health-timeout 5s --health-retries 5
+    env:
+      DATABASE_URL: postgresql+asyncpg://visionops:visionops@localhost:5432/visionops
+      REDIS_URL: redis://localhost:6379/0
+      ENVIRONMENT: test
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install --upgrade pip && pip install ".[dev]"
+      - run: ruff check app tests
+      - run: alembic upgrade head
+      - run: pytest -q
+
+  services:
+    name: AI/Worker (Python)
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        app: [api, ai-engine, worker]
+        app: [ai-engine, worker]
     defaults:
       run:
         working-directory: apps/${{ matrix.app }}
@@ -44,5 +83,5 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install --upgrade pip && pip install ".[dev]"
-      - run: ruff check .
+      - run: ruff check src tests
       - run: pytest -q
