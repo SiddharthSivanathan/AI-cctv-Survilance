@@ -3,11 +3,9 @@
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { Camera as CameraIcon } from 'lucide-react';
 import {
   Button,
   Card,
-  CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
@@ -15,6 +13,7 @@ import {
 } from '@visionops/ui';
 import { formatDateTime } from '@visionops/utils';
 import { CameraStatusBadge } from '@/features/cameras/status';
+import { LivePlayer } from '@/components/live-player';
 import { useCamera, useDeleteCamera, useTestCamera } from '@/features/cameras/hooks';
 
 export default function CameraDetailPage() {
@@ -86,19 +85,9 @@ export default function CameraDetailPage() {
         </div>
       </div>
 
-      <Card className="mt-6 overflow-hidden">
-        <div className="flex aspect-video items-center justify-center bg-muted">
-          {camera.thumbnail_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={camera.thumbnail_url} alt="" className="h-full w-full object-cover" />
-          ) : (
-            <div className="flex flex-col items-center gap-2 text-muted-foreground/50">
-              <CameraIcon className="h-10 w-10" />
-              <span className="text-xs">No preview yet</span>
-            </div>
-          )}
-        </div>
-      </Card>
+      <div className="mt-6">
+        <LivePlayer cameraId={camera.id} />
+      </div>
 
       {camera.last_error && camera.status !== 'online' && (
         <p className="mt-3 text-sm text-destructive">{camera.last_error}</p>
@@ -116,17 +105,6 @@ export default function CameraDetailPage() {
         <Detail label="Sampling FPS" value={String(camera.sample_fps)} />
       </div>
 
-      <Card className="mt-6">
-        <CardHeader>
-          <CardTitle className="text-base">Live stream</CardTitle>
-          <CardDescription>
-            Low-latency live view arrives with the streaming gateway in the next module.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <span className="text-xs text-muted-foreground">Coming soon</span>
-        </CardContent>
-      </Card>
     </div>
   );
 }
