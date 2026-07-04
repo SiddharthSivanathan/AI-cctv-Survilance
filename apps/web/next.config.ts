@@ -5,9 +5,6 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   // Transpile shared workspace packages that ship raw TS.
   transpilePackages: ['@visionops/ui', '@visionops/utils', '@visionops/types', '@visionops/sdk'],
-  experimental: {
-    typedRoutes: true,
-  },
   async headers() {
     return [
       {
