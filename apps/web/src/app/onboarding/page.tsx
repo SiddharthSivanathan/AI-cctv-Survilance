@@ -19,7 +19,10 @@ import {
 import { AuthGuard } from '@/components/auth-guard';
 import { useCreateOrganization } from '@/features/auth/hooks';
 import { useAuth } from '@/features/auth/use-auth';
+import { useCreateStore } from '@/features/stores/hooks';
+import { StoreForm } from '@/features/stores/store-form';
 import { ApiError } from '@/lib/api-client';
+import type { CreateStoreInput } from '@/features/stores/types';
 
 const companySchema = z.object({
   name: z.string().min(1, 'Company name is required'),
@@ -55,6 +58,7 @@ function OnboardingFlow() {
   const router = useRouter();
   const { user } = useAuth();
   const createOrg = useCreateOrganization();
+  const createStore = useCreateStore();
   const [step, setStep] = useState(user?.needs_onboarding ? 0 : 1);
   const [error, setError] = useState<string | null>(null);
 
@@ -69,6 +73,16 @@ function OnboardingFlow() {
       setStep(1);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not create your company.');
+    }
+  };
+
+  const submitStore = async (values: CreateStoreInput) => {
+    setError(null);
+    try {
+      await createStore.mutateAsync(values);
+      setStep(2);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not create the store.');
     }
   };
 
@@ -109,12 +123,31 @@ function OnboardingFlow() {
       )}
 
       {step === 1 && (
-        <WizardPlaceholder
-          title="Add your first store"
-          description="Stores represent your physical sites. Store management arrives in the next module."
-          onSkip={() => setStep(2)}
-          onBack={() => setStep(0)}
-        />
+        <Card>
+          <CardHeader>
+            <CardTitle>Add your first store</CardTitle>
+            <CardDescription>
+              A store is a physical location (e.g. “ABC Supermarket — Madurai”). You can add more
+              later.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <StoreForm
+              onSubmit={submitStore}
+              submitting={createStore.isPending}
+              error={error}
+              submitLabel="Add store & continue"
+            />
+            <div className="flex justify-between border-t pt-4">
+              <Button variant="ghost" onClick={() => setStep(0)}>
+                Back
+              </Button>
+              <Button variant="outline" onClick={() => setStep(2)}>
+                Skip for now
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {step === 2 && (
