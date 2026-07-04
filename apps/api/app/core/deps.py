@@ -23,6 +23,7 @@ from app.models.membership import Membership
 from app.models.user import User
 from app.repositories import (
     AuditRepository,
+    CameraRepository,
     EmailVerificationRepository,
     MembershipRepository,
     OrganizationRepository,
@@ -34,6 +35,7 @@ from app.repositories import (
 from app.services import (
     AuditService,
     AuthService,
+    CameraService,
     OrganizationService,
     RequestMeta,
     StoreService,
@@ -100,6 +102,24 @@ def get_store_service(db: AsyncSession = Depends(get_db)) -> StoreService:
 
 def get_storage() -> ObjectStorage:
     return ObjectStorage()
+
+
+def get_camera_service(db: AsyncSession = Depends(get_db)) -> CameraService:
+    return CameraService(
+        CameraRepository(db),
+        StoreRepository(db),
+        AuditService(AuditRepository(db)),
+        ObjectStorage(),
+    )
+
+
+def require_internal_token(request: Request) -> None:
+    """Guard internal service endpoints with a shared secret token."""
+    from app.core.config import get_settings
+
+    token = request.headers.get("x-internal-token")
+    if not token or token != get_settings().internal_api_token:
+        raise InvalidTokenError("Invalid internal token")
 
 
 # ----- auth context --------------------------------------------------------

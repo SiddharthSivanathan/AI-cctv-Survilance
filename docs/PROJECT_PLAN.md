@@ -61,8 +61,18 @@ Vertical slice. Simplified per owner: **no Branch entity** (Store = location); r
 - ⬜ **Owner approval to proceed to Phase 5**
 - ℹ️ Branch entity deferred; schema designed to add it later without refactor
 
-## Phase 5 — Camera Management & RTSP Integration ⬜
-Camera CRUD · encrypted creds · ONVIF discovery · zones/ROIs · health/heartbeats.
+## Phase 5 — Camera Management & RTSP Integration ⏸️ (built — awaiting approval)
+Vertical slice. ONVIF/discovery deferred per owner; focus on reliable RTSP validation.
+- ✅ `cameras` table + migration with RLS; store-ownership check on create/update
+- ✅ Credentials encrypted at rest (Fernet); passwords never returned/logged; masked rtsp_url + has_credentials; blank-password-keeps on edit
+- ✅ RTSP validation via ffmpeg/ffprobe: connect, auth, capture frame → thumbnail, detect resolution/fps/codec; status enum
+- ✅ Camera CRUD + `POST /cameras/{id}/test` + `POST /cameras/test-connection`
+- ✅ Health monitoring: Celery Beat (60s) → internal token-guarded sweep; offline >5min emits `camera.offline` event (full alerts in Phase 10)
+- ✅ Frontend: cameras grid, add (with Test Connection), detail (preview + test), edit; store detail lists its cameras; sidebar Cameras enabled
+- ✅ UI primitive: Badge; camera status badges + preview thumbnails
+- ✅ Tests: crypto + rtsp unit; camera CRUD/masking/isolation + health sweep integration (probe monkeypatched)
+- ⚠️ Real ffmpeg RTSP capture needs a live camera + Docker to verify
+- ⬜ **Owner approval to proceed to Phase 6**
 
 ## Phase 6 — Live Streaming Service ⬜
 Go gateway RTSP ingest · WebRTC/HLS · camera grid live view.
@@ -88,4 +98,4 @@ E2E tests · security hardening · K8s + Helm · GPU node pools · observability
 ---
 
 ## Next recommended action
-**Verify & approve Phase 4** (stores + settings slice), then I present the Phase 5 plan (Camera Management & RTSP integration — backend + frontend vertical slice) with the exact file list and **stop again** before writing code — per Rule 3.
+**Verify & approve Phase 5** (cameras slice), then I present the Phase 6 plan (Live Streaming Service — Go media gateway, WebRTC/HLS, camera grid live view) with the exact file list and **stop again** before writing code — per Rule 3.

@@ -58,6 +58,18 @@ class Settings(BaseSettings):
     # Redis
     redis_url: str = Field(default="redis://localhost:6379/0")
 
+    # Credential encryption (Fernet key, base64 32 bytes). Dev default below is
+    # NOT for production — set CREDENTIALS_ENCRYPTION_KEY from a secret/KMS.
+    credentials_encryption_key: str = Field(
+        default="hkuXDBkzTIAaF56qfUDC8jaqCrrYh2XIZREFX5SGxi4="
+    )
+
+    # Internal service-to-service auth (worker -> API health sweep).
+    internal_api_token: str = Field(default="change-me-internal-token")
+    # Cameras
+    camera_offline_threshold_seconds: int = Field(default=300)
+    rtsp_probe_timeout_seconds: int = Field(default=12)
+
     # Object storage (S3 / MinIO)
     s3_endpoint: str = Field(default="http://localhost:9000")
     s3_access_key: str = Field(default="visionops")

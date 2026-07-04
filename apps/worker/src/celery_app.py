@@ -15,7 +15,7 @@ celery_app = Celery(
     "visionops",
     broker=settings.celery_broker_url,
     backend=settings.celery_result_backend,
-    include=["src.tasks"],
+    include=["src.tasks", "src.tasks.camera_health"],
 )
 
 celery_app.conf.update(
@@ -29,5 +29,10 @@ celery_app.conf.update(
     worker_prefetch_multiplier=1,
 )
 
-# Beat schedule is populated when scheduled reports land (Phase 10).
-celery_app.conf.beat_schedule = {}
+# Periodic tasks. Camera health sweep runs every N seconds (default 60).
+celery_app.conf.beat_schedule = {
+    "camera-health-sweep": {
+        "task": "visionops.cameras.health_sweep",
+        "schedule": float(settings.camera_health_interval_seconds),
+    },
+}

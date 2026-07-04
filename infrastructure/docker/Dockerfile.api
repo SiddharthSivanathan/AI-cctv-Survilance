@@ -8,9 +8,11 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
-# System deps for asyncpg / argon2 build if wheels unavailable.
+# System deps: build tools for asyncpg/argon2, and ffmpeg/ffprobe for RTSP
+# connection validation and thumbnail capture.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
+    ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
 COPY apps/api/pyproject.toml ./pyproject.toml

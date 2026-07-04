@@ -17,6 +17,11 @@ class WorkerSettings(BaseSettings):
     celery_broker_url: str = Field(default="redis://localhost:6379/1")
     celery_result_backend: str = Field(default="redis://localhost:6379/2")
 
+    # Internal API trigger (camera health sweep etc.)
+    api_internal_url: str = Field(default="http://localhost:8000")
+    internal_api_token: str = Field(default="change-me-internal-token")
+    camera_health_interval_seconds: int = Field(default=60)
+
 
 @lru_cache
 def get_settings() -> WorkerSettings:

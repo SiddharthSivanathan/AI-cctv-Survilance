@@ -7,6 +7,14 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ## [Unreleased]
 
 ### Added
+- **Phase 5 — Camera Management & RTSP Integration** (backend + frontend vertical slice):
+  - `cameras` table + migration with Row-Level Security; store-ownership validation on create/update.
+  - RTSP credentials encrypted at rest (Fernet); passwords never returned or logged; `rtsp_url` userinfo stripped; `has_credentials` flag; blank-password-keeps-existing on edit.
+  - RTSP validation via ffmpeg/ffprobe: connect, authenticate, capture a frame → thumbnail (object storage), detect resolution/fps/codec; typed status result.
+  - Camera CRUD, `POST /cameras/{id}/test`, `POST /cameras/test-connection`, `GET /stores/{id}/cameras`.
+  - Health monitoring: Celery Beat (60s) triggers an internal token-guarded sweep; cameras offline beyond threshold emit a `camera.offline` event (full alerts arrive in Phase 10).
+  - Frontend: cameras grid, add/detail/edit with live "Test Connection", preview thumbnails, status badges; store detail lists its cameras; Cameras enabled in the sidebar.
+  - Shared UI primitive: Badge. ffmpeg added to the API image.
 - **Phase 4 — Organizations & Stores** (backend + frontend vertical slice):
   - `stores` table + migration with Row-Level Security; store CRUD API gated by an onboarded-membership dependency; cross-tenant isolation test.
   - Organization settings (logo, contact, address, timezone, currency, email-alert toggle) with read-only id/created date; `PATCH /organizations/current`.

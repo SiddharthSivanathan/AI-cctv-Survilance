@@ -23,6 +23,7 @@ from app.services.email.sender import EmailMessage, EmailSender
 
 _TABLES = (
     "audit_logs",
+    "cameras",
     "stores",
     "password_reset_tokens",
     "email_verification_tokens",
@@ -31,6 +32,17 @@ _TABLES = (
     "users",
     "organizations",
 )
+
+
+def _rls_sql(table: str, *, with_check: str) -> list[str]:
+    policy = f"{table}_tenant_isolation"
+    using = "organization_id = NULLIF(current_setting('app.current_org', true), '')::uuid"
+    return [
+        f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY",
+        f"ALTER TABLE {table} FORCE ROW LEVEL SECURITY",
+        f"DROP POLICY IF EXISTS {policy} ON {table}",
+        f"CREATE POLICY {policy} ON {table} USING ({using}) WITH CHECK ({with_check})",
+    ]
 
 _db_ready: bool | None = None
 
@@ -56,19 +68,11 @@ async def _ensure_schema() -> bool:
                     "WITH CHECK (true)"
                 )
             )
-            # RLS for stores (matches migration 0002).
-            await conn.execute(text("ALTER TABLE stores ENABLE ROW LEVEL SECURITY"))
-            await conn.execute(text("ALTER TABLE stores FORCE ROW LEVEL SECURITY"))
-            await conn.execute(text("DROP POLICY IF EXISTS stores_tenant_isolation ON stores"))
-            await conn.execute(
-                text(
-                    "CREATE POLICY stores_tenant_isolation ON stores "
-                    "USING (organization_id = "
-                    "NULLIF(current_setting('app.current_org', true), '')::uuid) "
-                    "WITH CHECK (organization_id = "
-                    "NULLIF(current_setting('app.current_org', true), '')::uuid)"
-                )
-            )
+            # RLS for stores + cameras (matches migrations 0002/0003).
+            org_check = "organization_id = NULLIF(current_setting('app.current_org', true), '')::uuid"
+            for table in ("stores", "cameras"):
+                for stmt in _rls_sql(table, with_check=org_check):
+                    await conn.execute(text(stmt))
         _db_ready = True
     except Exception:  # noqa: BLE001 - any connection/setup failure => skip integration
         _db_ready = False
