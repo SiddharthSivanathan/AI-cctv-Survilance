@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   Radio,
   Settings,
+  SlidersHorizontal,
   Store,
 } from 'lucide-react';
 import { cn } from '@visionops/utils';
@@ -22,11 +23,13 @@ const NAV = [
   { href: '/stores', label: 'Stores', icon: Store, enabled: true },
   { href: '/cameras', label: 'Cameras', icon: Camera, enabled: true },
   { href: '/live', label: 'Live view', icon: Radio, enabled: true },
+  { href: '/rules', label: 'Rules', icon: SlidersHorizontal, enabled: true },
+  { href: '/alerts', label: 'Alerts', icon: Bell, enabled: true },
+  { href: '/events', label: 'Events', icon: FileText, enabled: true },
   { href: '/settings', label: 'Settings', icon: Settings, enabled: true },
 ] as const;
 
 const SOON = [
-  { label: 'Alerts', icon: Bell },
   { label: 'Analytics', icon: BarChart3 },
   { label: 'Reports', icon: FileText },
 ] as const;

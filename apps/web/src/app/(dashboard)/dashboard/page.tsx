@@ -5,11 +5,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@visi
 import { useAuth } from '@/features/auth/use-auth';
 import { useStores } from '@/features/stores/hooks';
 import { useCameras } from '@/features/cameras/hooks';
+import { useAlerts } from '@/features/events/hooks';
 
 export default function DashboardOverviewPage() {
   const { user } = useAuth();
   const stores = useStores();
   const cameras = useCameras();
+  const openAlerts = useAlerts('open');
 
   return (
     <div className="mx-auto max-w-5xl px-8 py-10">
@@ -52,10 +54,14 @@ export default function DashboardOverviewPage() {
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Open alerts</CardDescription>
-            <CardTitle className="text-3xl">0</CardTitle>
+            <CardTitle className="text-3xl">
+              {openAlerts.isLoading ? '—' : (openAlerts.data?.length ?? 0)}
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <span className="text-xs text-muted-foreground">Coming soon</span>
+            <Link href="/alerts" className="text-sm text-muted-foreground hover:underline">
+              View alerts →
+            </Link>
           </CardContent>
         </Card>
       </div>
