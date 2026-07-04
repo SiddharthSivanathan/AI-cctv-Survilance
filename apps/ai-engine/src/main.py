@@ -1,67 +1,62 @@
 """AI engine service entrypoint.
 
-Phase 2: establishes the service lifecycle — configuration, logging, Redis
-connectivity, and a graceful run loop. The frame-consumption + detection
-pipeline is implemented in Phase 7. No inference logic here yet.
+Runs two cooperating components in one process for V1:
+  * SamplerManager — provisions MediaMTX paths and runs ffmpeg frame samplers.
+  * DetectionWorker — consumes frames, runs YOLOv11s + tracking, publishes
+    detections to Redis.
+
+Both are stateless and database-free. The rule engine (Phase 8) consumes the
+detection stream. Components can later be split into separate deployments.
 """
 
 from __future__ import annotations
 
 import signal
 import sys
-import time
+import threading
 from types import FrameType
 
-import redis
 import structlog
 
 from src import __version__
 from src.config import get_settings
+from src.ingestion.manager import SamplerManager
+from src.pipeline.worker import DetectionWorker
+from src.redis_streams import get_client
 
 logger = structlog.get_logger("ai-engine")
 
-_shutdown = False
+_stop = threading.Event()
 
 
 def _handle_signal(signum: int, _frame: FrameType | None) -> None:
-    global _shutdown
     logger.info("shutdown_signal_received", signal=signal.Signals(signum).name)
-    _shutdown = True
-
-
-def check_redis(url: str) -> bool:
-    """Return True if Redis is reachable."""
-    try:
-        client = redis.from_url(url)
-        client.ping()
-        client.close()
-        return True
-    except redis.RedisError as exc:
-        logger.warning("redis_unavailable", error=str(exc))
-        return False
+    _stop.set()
 
 
 def main() -> int:
-    """Run the AI engine service loop."""
     settings = get_settings()
     signal.signal(signal.SIGTERM, _handle_signal)
     signal.signal(signal.SIGINT, _handle_signal)
 
-    logger.info(
-        "ai_engine_starting",
-        version=__version__,
-        environment=settings.environment,
-        device=settings.ai_device,
+    logger.info("ai_engine_starting", version=__version__, device=settings.ai_device)
+
+    client = get_client()
+    manager = SamplerManager(client)
+    worker = DetectionWorker(client)
+
+    manager_thread = threading.Thread(
+        target=manager.run_forever, args=(_stop,), name="sampler-manager", daemon=True
     )
+    manager_thread.start()
 
-    redis_ok = check_redis(settings.redis_url)
-    logger.info("ai_engine_ready", redis=redis_ok)
-
-    # Idle heartbeat loop until the pipeline is wired in Phase 7.
-    while not _shutdown:
-        time.sleep(5)
-
-    logger.info("ai_engine_stopped")
+    logger.info("ai_engine_ready")
+    try:
+        worker.run_forever(_stop)
+    finally:
+        _stop.set()
+        manager.shutdown()
+        logger.info("ai_engine_stopped")
     return 0
 
 

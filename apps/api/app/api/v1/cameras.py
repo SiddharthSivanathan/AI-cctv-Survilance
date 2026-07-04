@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import json
 import uuid
 
 from fastapi import APIRouter, Depends, Query, status
+
+from app.core.redis_client import get_redis
 
 from app.core.deps import (
     AuthContext,
@@ -85,6 +88,31 @@ async def update_camera(
         data=payload,
     )
     return CameraResponse.model_validate(camera)
+
+
+@router.get("/{camera_id}/detections/latest")
+async def latest_detections(
+    camera_id: uuid.UUID,
+    ctx: AuthContext = Depends(require_membership),
+    service: CameraService = Depends(get_camera_service),
+) -> dict:
+    """Return the most recent detection payload for a camera (ephemeral, Redis).
+
+    Used by the live view to overlay bounding boxes. Returns an empty payload
+    when no recent detections exist.
+    """
+    await service.get(camera_id, _org(ctx))  # 404 if not in org
+    empty = {"camera_id": str(camera_id), "person_count": 0, "detections": []}
+    try:
+        raw = await get_redis().get(f"detections:latest:{camera_id}")
+    except Exception:  # noqa: BLE001 - Redis optional for this read
+        return empty
+    if not raw:
+        return empty
+    try:
+        return json.loads(raw)
+    except (ValueError, TypeError):
+        return empty
 
 
 @router.post("/{camera_id}/live", response_model=LiveStreamResponse)

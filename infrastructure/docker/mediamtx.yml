@@ -17,8 +17,10 @@ webrtcLocalUDPAddress: :8189
 # to the public IP/hostname (and add a TURN server for restrictive networks).
 webrtcAdditionalHosts: [localhost]
 
-# Disable protocols we don't use in V1.
-rtsp: no
+# Internal RTSP — used by the AI frame sampler to read provisioned camera
+# paths (rtsp://mediamtx:8554/{camera_id}). Not exposed in docker-compose.
+rtsp: yes
+rtspAddress: :8554
 rtmp: no
 hls: no
 srt: no

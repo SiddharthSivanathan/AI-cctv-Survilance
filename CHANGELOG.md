@@ -7,6 +7,14 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ## [Unreleased]
 
 ### Added
+- **Phase 7 — AI Vision Pipeline** (stateless detector; backend + overlay):
+  - ffmpeg frame sampler (reads MediaMTX internal RTSP at 2 fps, 640×640) → capped Redis frames stream; sampler manager provisions paths and reconciles from `GET /internal/cameras/streams`.
+  - YOLOv11s detector (Ultralytics, lazy-loaded, pure parse function) + IOU tracker (ByteTrack-swappable via `supervision`).
+  - Detection worker: Redis consumer group → detect → track → publish detection payloads (ephemeral) + `detections:latest` key. Stateless and DB-free.
+  - API: internal camera-streams endpoint (decrypted sources) and `GET /cameras/{id}/detections/latest` (tenant-scoped Redis read) for the live overlay.
+  - Frontend: live bounding-box overlay + person count on the WebRTC player.
+  - MediaMTX internal RTSP enabled; ai-engine image adds ffmpeg + ML deps. Tests (ML-mocked) for parsing/tracking/payloads.
+  - No raw-detection persistence; business events/alerts/zones/rules deferred to Phase 8.
 - **Phase 6 — Live Streaming Service** (backend + gateway + frontend vertical slice):
   - New Go media gateway (`apps/gateway`, standard library only): provisions on-demand MediaMTX paths, verifies backend-issued HS256 playback tokens, and authorizing-reverse-proxies WHEP signaling (MediaMTX stays internal).
   - MediaMTX added as the WebRTC media plane; docker-compose services (`mediamtx`, `gateway`) + config.

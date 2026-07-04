@@ -111,9 +111,16 @@ services:
     env_file: .env
     environment:
       REDIS_URL: redis://redis:6379/0
+      API_INTERNAL_URL: http://api:8000
+      GATEWAY_INTERNAL_URL: http://gateway:8080
+      MEDIAMTX_RTSP_URL: rtsp://mediamtx:8554
     depends_on:
       redis:
         condition: service_healthy
+      mediamtx:
+        condition: service_started
+      api:
+        condition: service_started
 
   mediamtx:
     image: bluenviron/mediamtx:latest

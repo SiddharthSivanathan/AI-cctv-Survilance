@@ -86,8 +86,19 @@ Vertical slice. WebRTC-only via MediaMTX; backend-issued playback tokens.
 - ⬜ **Owner approval to proceed to Phase 7**
 - ℹ️ AI frame ingestion (ffmpeg→Redis) intentionally deferred to Phase 7
 
-## Phase 7 — AI Vision Pipeline ⬜
-YOLOv11 + ByteTrack · detections → TimescaleDB · conditional enrichment (fire/smoke, PPE, pose, LPR, OCR, VLM).
+## Phase 7 — AI Vision Pipeline ⏸️ (built — awaiting approval)
+Vertical slice. Stateless detector → detections only; no persistence (rule engine = Phase 8).
+- ✅ ffmpeg frame sampler (reads MediaMTX internal RTSP, 2 fps, 640×640) → capped Redis frames stream
+- ✅ Sampler manager: provisions MediaMTX paths, reconciles samplers from `GET /internal/cameras/streams`
+- ✅ YOLOv11s detector (lazy-loaded, pure parse fn) + IOU tracker (ByteTrack-swappable)
+- ✅ Detection worker: Redis consumer group → detect → track → publish detections (ephemeral) + latest key
+- ✅ API: `GET /internal/cameras/streams` (decrypted sources), `GET /cameras/{id}/detections/latest` (overlay)
+- ✅ Frontend: live detection overlay (bounding boxes + person count) on the WebRTC player
+- ✅ MediaMTX internal RTSP enabled; ai-engine image gets ffmpeg + torch/ultralytics/onnxruntime/supervision
+- ✅ Tests (ML-mocked): detection parsing, IOU tracker, payload builder
+- ⚠️ Cannot run YOLO/torch/ffmpeg here; real inference needs the ML deps + GPU
+- ⬜ **Owner approval to proceed to Phase 8**
+- ℹ️ Business events / camera_events / alerts / zones / rules → Phase 8
 
 ## Phase 8 — Rule Engine ⬜
 No-code builder · safe typed AST · temporal/stateful conditions · real-time alerts.
@@ -107,4 +118,4 @@ E2E tests · security hardening · K8s + Helm · GPU node pools · observability
 ---
 
 ## Next recommended action
-**Verify & approve Phase 6** (live streaming slice), then I present the Phase 7 plan (AI Vision Pipeline — ffmpeg frame sampler → Redis → YOLO detection → tracking → events) with the exact file list and **stop again** before writing code — per Rule 3.
+**Verify & approve Phase 7** (AI pipeline slice), then I present the Phase 8 plan (Rule Engine — no-code rules, zones, Event Service, camera_events/alerts) with the exact file list and **stop again** before writing code — per Rule 3.
