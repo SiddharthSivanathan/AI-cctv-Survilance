@@ -13,12 +13,15 @@ import {
   Skeleton,
 } from '@visionops/ui';
 import { useDeleteStore, useStore } from '@/features/stores/hooks';
+import { useCameras } from '@/features/cameras/hooks';
+import { CameraCard } from '@/components/camera-card';
 
 export default function StoreDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const id = params.id;
   const { data: store, isLoading, isError } = useStore(id);
+  const cameras = useCameras(id);
   const deleteStore = useDeleteStore();
   const [confirming, setConfirming] = useState(false);
 
@@ -97,17 +100,26 @@ export default function StoreDetailPage() {
         </Card>
       </div>
 
-      <Card className="mt-6">
-        <CardHeader>
-          <CardTitle className="text-base">Cameras</CardTitle>
-          <CardDescription>
-            Connect RTSP/ONVIF cameras to this store. Camera management ships in the next module.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <span className="text-xs text-muted-foreground">Coming soon</span>
-        </CardContent>
-      </Card>
+      <div className="mt-8 flex items-center justify-between">
+        <h2 className="text-lg font-semibold tracking-tight">Cameras</h2>
+        <Link href={`/cameras/new?store_id=${id}`}>
+          <Button size="sm">Add camera</Button>
+        </Link>
+      </div>
+
+      {cameras.data && cameras.data.length > 0 ? (
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          {cameras.data.map((camera) => (
+            <CameraCard key={camera.id} camera={camera} />
+          ))}
+        </div>
+      ) : (
+        <Card className="mt-4">
+          <CardContent className="py-8 text-center text-sm text-muted-foreground">
+            No cameras connected to this store yet.
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

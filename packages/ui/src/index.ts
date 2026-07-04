@@ -6,6 +6,7 @@ export { Textarea, type TextareaProps } from './textarea';
 export { Select, type SelectProps } from './select';
 export { Switch, type SwitchProps } from './switch';
 export { Skeleton } from './skeleton';
+export { Badge, type BadgeProps } from './badge';
 export {
   Card,
   CardHeader,

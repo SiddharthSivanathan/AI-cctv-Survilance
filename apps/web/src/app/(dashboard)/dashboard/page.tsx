@@ -4,10 +4,12 @@ import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@visionops/ui';
 import { useAuth } from '@/features/auth/use-auth';
 import { useStores } from '@/features/stores/hooks';
+import { useCameras } from '@/features/cameras/hooks';
 
 export default function DashboardOverviewPage() {
   const { user } = useAuth();
   const stores = useStores();
+  const cameras = useCameras();
 
   return (
     <div className="mx-auto max-w-5xl px-8 py-10">
@@ -36,10 +38,14 @@ export default function DashboardOverviewPage() {
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Cameras</CardDescription>
-            <CardTitle className="text-3xl">0</CardTitle>
+            <CardTitle className="text-3xl">
+              {cameras.isLoading ? '—' : (cameras.data?.length ?? 0)}
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <span className="text-xs text-muted-foreground">Coming soon</span>
+            <Link href="/cameras" className="text-sm text-muted-foreground hover:underline">
+              Manage cameras →
+            </Link>
           </CardContent>
         </Card>
 

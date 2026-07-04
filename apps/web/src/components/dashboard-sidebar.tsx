@@ -19,11 +19,11 @@ import { useAuth } from '@/features/auth/use-auth';
 const NAV = [
   { href: '/dashboard', label: 'Overview', icon: LayoutDashboard, enabled: true },
   { href: '/stores', label: 'Stores', icon: Store, enabled: true },
+  { href: '/cameras', label: 'Cameras', icon: Camera, enabled: true },
   { href: '/settings', label: 'Settings', icon: Settings, enabled: true },
 ] as const;
 
 const SOON = [
-  { label: 'Cameras', icon: Camera },
   { label: 'Alerts', icon: Bell },
   { label: 'Analytics', icon: BarChart3 },
   { label: 'Reports', icon: FileText },
