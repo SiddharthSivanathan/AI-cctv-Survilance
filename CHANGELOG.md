@@ -7,6 +7,13 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ## [Unreleased]
 
 ### Added
+- **Phase 4 — Organizations & Stores** (backend + frontend vertical slice):
+  - `stores` table + migration with Row-Level Security; store CRUD API gated by an onboarded-membership dependency; cross-tenant isolation test.
+  - Organization settings (logo, contact, address, timezone, currency, email-alert toggle) with read-only id/created date; `PATCH /organizations/current`.
+  - Object-storage layer (boto3 → S3/MinIO) with bucket auto-creation and a logo upload endpoint.
+  - Frontend: dashboard sidebar shell, stores list/create/detail/edit, settings page with logo upload; onboarding "Add first store" wired to the real API.
+  - Shared UI primitives: Textarea, Select, Switch, Skeleton.
+  - Note: Branch entity intentionally deferred; Store is the single V1 location entity.
 - **Phase 3 — Authentication & Multi-Tenant SaaS** (backend + frontend vertical slice):
   - Multi-tenant schema + Alembic migration (organizations, users, memberships, refresh/verification/reset tokens, audit logs) with Postgres Row-Level Security on `audit_logs`.
   - JWT RS256 access tokens + rotating refresh tokens with reuse detection; Argon2id passwords.

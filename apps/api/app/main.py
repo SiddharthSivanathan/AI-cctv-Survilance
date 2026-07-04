@@ -42,6 +42,13 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     logger.info("api_startup", environment=settings.environment, version=__version__)
+    # Ensure the media bucket exists (non-fatal if storage is unreachable).
+    try:
+        from app.core.storage import ensure_bucket
+
+        ensure_bucket()
+    except Exception as exc:  # noqa: BLE001 - never block startup on storage
+        logger.warning("storage_init_skipped", error=str(exc))
     yield
     logger.info("api_shutdown")
 

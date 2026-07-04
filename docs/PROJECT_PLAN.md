@@ -48,8 +48,18 @@ email+password only, one org per user, Owner role, hard email-verification gate.
 - ℹ️ MFA/SSO/invites deferred; schema kept extensible. Refresh token stored client-side for V1 (httpOnly-cookie/BFF hardening noted for Phase 12)
 - ⬜ **Owner approval to proceed to Phase 4**
 
-## Phase 4 — Organization, Stores & Branches ⬜
-Org/user management · invitations · stores · branches · settings · audit.
+## Phase 4 — Organizations & Stores ⏸️ (built — awaiting approval)
+Vertical slice. Simplified per owner: **no Branch entity** (Store = location); richer org settings.
+- ✅ `stores` table + migration with RLS (FORCE); cross-tenant isolation test
+- ✅ Store CRUD API (list/create/get/update/delete), `require_membership` gate
+- ✅ Organization settings: logo, contact email/phone, address, timezone, currency, alert-email toggle; read-only id + created date
+- ✅ Object storage layer (boto3 → S3/MinIO), bucket auto-create, logo upload endpoint
+- ✅ Frontend: dashboard sidebar shell, stores list/new/detail/edit, settings page (with logo upload), onboarding step 2 wired to real store creation
+- ✅ Shared UI primitives: Textarea, Select, Switch, Skeleton
+- ✅ Tests: store CRUD + tenant isolation + onboarding gate; org settings read/update
+- ⚠️ Object-storage/logo flows need Docker/MinIO to fully verify
+- ⬜ **Owner approval to proceed to Phase 5**
+- ℹ️ Branch entity deferred; schema designed to add it later without refactor
 
 ## Phase 5 — Camera Management & RTSP Integration ⬜
 Camera CRUD · encrypted creds · ONVIF discovery · zones/ROIs · health/heartbeats.
@@ -78,4 +88,4 @@ E2E tests · security hardening · K8s + Helm · GPU node pools · observability
 ---
 
 ## Next recommended action
-**Verify & approve Phase 3** (auth vertical slice), then I present the Phase 4 plan (Organizations, Stores & Branches — backend + frontend vertical slice) with the exact file list and **stop again** before writing code — per Rule 3.
+**Verify & approve Phase 4** (stores + settings slice), then I present the Phase 5 plan (Camera Management & RTSP integration — backend + frontend vertical slice) with the exact file list and **stop again** before writing code — per Rule 3.

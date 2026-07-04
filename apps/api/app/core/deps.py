@@ -13,9 +13,10 @@ from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import InvalidTokenError, PermissionDeniedError
+from app.core.exceptions import AppError, InvalidTokenError, PermissionDeniedError
 from app.core.security import jwt as jwt_utils
 from app.core.security.jwt import TokenError
+from app.core.storage import ObjectStorage
 from app.db.session import get_db, set_org_context
 from app.domain.roles import ROLE_RANK
 from app.models.membership import Membership
@@ -27,11 +28,24 @@ from app.repositories import (
     OrganizationRepository,
     PasswordResetRepository,
     RefreshTokenRepository,
+    StoreRepository,
     UserRepository,
 )
-from app.services import AuditService, AuthService, OrganizationService, RequestMeta, TokenService
+from app.services import (
+    AuditService,
+    AuthService,
+    OrganizationService,
+    RequestMeta,
+    StoreService,
+    TokenService,
+)
 from app.services.email import ConsoleEmailSender
 from app.services.email.sender import EmailSender
+
+
+class OnboardingRequiredError(AppError):
+    status_code = 409
+    code = "onboarding_required"
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
@@ -78,6 +92,14 @@ def get_auth_service(
 
 def get_organization_service(db: AsyncSession = Depends(get_db)) -> OrganizationService:
     return OrganizationService(OrganizationRepository(db), MembershipRepository(db))
+
+
+def get_store_service(db: AsyncSession = Depends(get_db)) -> StoreService:
+    return StoreService(StoreRepository(db), AuditService(AuditRepository(db)))
+
+
+def get_storage() -> ObjectStorage:
+    return ObjectStorage()
 
 
 # ----- auth context --------------------------------------------------------
@@ -127,6 +149,17 @@ async def get_current_context(
 
 async def get_current_user(ctx: AuthContext = Depends(get_current_context)) -> User:
     return ctx.user
+
+
+async def require_membership(ctx: AuthContext = Depends(get_current_context)) -> AuthContext:
+    """Require an onboarded user (belongs to an organization).
+
+    Guarantees ``ctx.membership`` is not None. Use for all tenant-scoped
+    resource endpoints (stores, settings, cameras…).
+    """
+    if ctx.membership is None:
+        raise OnboardingRequiredError("Create your organization before continuing")
+    return ctx
 
 
 def require_role(minimum: str):

@@ -4,6 +4,7 @@ from app.repositories.audit_repository import AuditRepository
 from app.repositories.membership_repository import MembershipRepository
 from app.repositories.organization_repository import OrganizationRepository
 from app.repositories.refresh_token_repository import RefreshTokenRepository
+from app.repositories.store_repository import StoreRepository
 from app.repositories.user_repository import UserRepository
 from app.repositories.verification_repository import (
     EmailVerificationRepository,
@@ -17,5 +18,6 @@ __all__ = [
     "OrganizationRepository",
     "PasswordResetRepository",
     "RefreshTokenRepository",
+    "StoreRepository",
     "UserRepository",
 ]

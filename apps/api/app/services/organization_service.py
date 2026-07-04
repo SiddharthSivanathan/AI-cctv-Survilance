@@ -12,6 +12,7 @@ from app.models.organization import Organization
 from app.models.user import User
 from app.repositories.membership_repository import MembershipRepository
 from app.repositories.organization_repository import OrganizationRepository
+from app.schemas.organization import UpdateOrganizationRequest
 
 
 def _slugify(name: str) -> str:
@@ -30,6 +31,20 @@ class OrganizationService:
 
     async def get(self, organization_id) -> Organization | None:
         return await self._orgs.get(organization_id)
+
+    async def update_settings(
+        self, organization: Organization, data: UpdateOrganizationRequest
+    ) -> Organization:
+        """Apply a partial update to an organization's editable settings."""
+        for field, value in data.model_dump(exclude_unset=True).items():
+            setattr(organization, field, value)
+        await self._orgs.session.flush()
+        return organization
+
+    async def set_logo(self, organization: Organization, logo_url: str) -> Organization:
+        organization.logo_url = logo_url
+        await self._orgs.session.flush()
+        return organization
 
     async def create_for_user(
         self, user: User, *, name: str, industry: str | None = None

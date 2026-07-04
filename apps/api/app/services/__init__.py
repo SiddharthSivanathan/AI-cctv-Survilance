@@ -3,6 +3,7 @@
 from app.services.audit_service import AuditService
 from app.services.auth_service import AuthService, RequestMeta
 from app.services.organization_service import OrganizationService
+from app.services.store_service import StoreService
 from app.services.token_service import TokenService
 
 __all__ = [
@@ -10,5 +11,6 @@ __all__ = [
     "AuthService",
     "OrganizationService",
     "RequestMeta",
+    "StoreService",
     "TokenService",
 ]

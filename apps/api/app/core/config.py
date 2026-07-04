@@ -58,6 +58,20 @@ class Settings(BaseSettings):
     # Redis
     redis_url: str = Field(default="redis://localhost:6379/0")
 
+    # Object storage (S3 / MinIO)
+    s3_endpoint: str = Field(default="http://localhost:9000")
+    s3_access_key: str = Field(default="visionops")
+    s3_secret_key: str = Field(default="visionops_dev_password")
+    s3_bucket: str = Field(default="visionops-media")
+    s3_region: str = Field(default="us-east-1")
+    # Public base URL for objects (defaults to endpoint). For MinIO dev this is
+    # the endpoint; in production this is typically a CDN/bucket public URL.
+    s3_public_url: str | None = Field(default=None)
+
+    @property
+    def s3_public_base(self) -> str:
+        return (self.s3_public_url or self.s3_endpoint).rstrip("/")
+
     @property
     def cors_origins_list(self) -> list[str]:
         """CORS origins as a list."""

@@ -23,6 +23,7 @@ from app.services.email.sender import EmailMessage, EmailSender
 
 _TABLES = (
     "audit_logs",
+    "stores",
     "password_reset_tokens",
     "email_verification_tokens",
     "refresh_tokens",
@@ -53,6 +54,19 @@ async def _ensure_schema() -> bool:
                     "USING (organization_id = "
                     "NULLIF(current_setting('app.current_org', true), '')::uuid) "
                     "WITH CHECK (true)"
+                )
+            )
+            # RLS for stores (matches migration 0002).
+            await conn.execute(text("ALTER TABLE stores ENABLE ROW LEVEL SECURITY"))
+            await conn.execute(text("ALTER TABLE stores FORCE ROW LEVEL SECURITY"))
+            await conn.execute(text("DROP POLICY IF EXISTS stores_tenant_isolation ON stores"))
+            await conn.execute(
+                text(
+                    "CREATE POLICY stores_tenant_isolation ON stores "
+                    "USING (organization_id = "
+                    "NULLIF(current_setting('app.current_org', true), '')::uuid) "
+                    "WITH CHECK (organization_id = "
+                    "NULLIF(current_setting('app.current_org', true), '')::uuid)"
                 )
             )
         _db_ready = True
