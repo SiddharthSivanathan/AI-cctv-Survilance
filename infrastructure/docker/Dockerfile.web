@@ -1,0 +1,35 @@
+# VisionOps AI — Web (Next.js 15) image
+# Build context: repository root (pnpm monorepo)
+FROM node:20-slim AS base
+ENV PNPM_HOME=/pnpm PATH=/pnpm:$PATH
+RUN corepack enable
+WORKDIR /repo
+
+# ---- deps: install workspace dependencies ----
+FROM base AS deps
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml* .npmrc turbo.json tsconfig.base.json ./
+COPY apps/web/package.json ./apps/web/package.json
+COPY packages/ui/package.json ./packages/ui/package.json
+COPY packages/utils/package.json ./packages/utils/package.json
+COPY packages/types/package.json ./packages/types/package.json
+COPY packages/sdk/package.json ./packages/sdk/package.json
+COPY packages/config/package.json ./packages/config/package.json
+RUN pnpm install --frozen-lockfile=false
+
+# ---- build ----
+FROM base AS build
+COPY --from=deps /repo/node_modules ./node_modules
+COPY . .
+RUN pnpm --filter @visionops/web build
+
+# ---- runtime ----
+FROM base AS runtime
+ENV NODE_ENV=production
+COPY --from=build /repo ./
+WORKDIR /repo/apps/web
+EXPOSE 3000
+RUN useradd --create-home --uid 1001 appuser && chown -R appuser:appuser /repo
+USER appuser
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+    CMD node -e "fetch('http://localhost:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+CMD ["pnpm", "start"]

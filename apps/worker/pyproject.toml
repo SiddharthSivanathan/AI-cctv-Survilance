@@ -1,0 +1,36 @@
+[project]
+name = "visionops-worker"
+version = "0.1.0"
+description = "VisionOps AI — Celery background workers (rules, notifications, reports)"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+dependencies = [
+    "celery[redis]>=5.4.0",
+    "pydantic>=2.9.0",
+    "pydantic-settings>=2.5.0",
+    "structlog>=24.4.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.0",
+    "ruff>=0.6.8",
+    "mypy>=1.11.0",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "SIM"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

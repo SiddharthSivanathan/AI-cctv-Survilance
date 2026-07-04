@@ -1,0 +1,21 @@
+# VisionOps AI — AI engine image (CPU skeleton for Phase 2)
+# Build context: repository root
+# NOTE: Phase 7 introduces a CUDA/TensorRT variant for GPU inference.
+FROM python:3.12-slim
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1
+
+WORKDIR /app
+
+COPY apps/ai-engine/pyproject.toml ./pyproject.toml
+# Skeleton install (no heavy ML wheels yet — those land in the GPU image).
+RUN pip install --upgrade pip && pip install ".[dev]"
+
+COPY apps/ai-engine/ ./
+
+RUN useradd --create-home --uid 1001 appuser && chown -R appuser:appuser /app
+USER appuser
+
+CMD ["python", "-m", "src.main"]

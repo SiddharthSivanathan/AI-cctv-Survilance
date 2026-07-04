@@ -1,0 +1,44 @@
+[project]
+name = "visionops-ai-engine"
+version = "0.1.0"
+description = "VisionOps AI — computer vision inference service"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+dependencies = [
+    "pydantic>=2.9.0",
+    "pydantic-settings>=2.5.0",
+    "redis>=5.1.0",
+    "structlog>=24.4.0",
+]
+
+[project.optional-dependencies]
+# Heavy ML deps are intentionally isolated so the skeleton stays light in CI.
+# They are installed in the GPU Docker image (Phase 7).
+ml = [
+    "numpy>=2.1.0",
+    "opencv-python-headless>=4.10.0",
+    "onnxruntime>=1.19.0",
+    "ultralytics>=8.3.0",
+]
+dev = [
+    "pytest>=8.3.0",
+    "ruff>=0.6.8",
+    "mypy>=1.11.0",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "SIM"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

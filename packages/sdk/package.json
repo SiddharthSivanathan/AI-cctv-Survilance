@@ -1,0 +1,28 @@
+{
+  "name": "@visionops/sdk",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Internal typed SDK/client for the VisionOps AI REST API",
+  "license": "MIT",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "test": "echo \"[sdk] no tests yet\" && exit 0",
+    "build": "tsc",
+    "clean": "rm -rf dist .turbo"
+  },
+  "dependencies": {
+    "@visionops/types": "workspace:*"
+  },
+  "devDependencies": {
+    "@visionops/config": "workspace:*",
+    "eslint": "^9.11.1",
+    "typescript": "^5.6.2"
+  }
+}
