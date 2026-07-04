@@ -22,25 +22,32 @@ from app.domain.roles import ROLE_RANK
 from app.models.membership import Membership
 from app.models.user import User
 from app.repositories import (
+    AlertRepository,
     AuditRepository,
+    CameraEventRepository,
     CameraRepository,
     EmailVerificationRepository,
     MembershipRepository,
     OrganizationRepository,
     PasswordResetRepository,
     RefreshTokenRepository,
+    RuleRepository,
     StoreRepository,
     UserRepository,
+    ZoneRepository,
 )
 from app.services import (
+    AlertService,
     AuditService,
     AuthService,
     CameraService,
     OrganizationService,
     RequestMeta,
+    RuleService,
     StoreService,
     StreamService,
     TokenService,
+    ZoneService,
 )
 from app.services.email import ConsoleEmailSender
 from app.services.email.sender import EmailSender
@@ -116,6 +123,23 @@ def get_camera_service(db: AsyncSession = Depends(get_db)) -> CameraService:
 
 def get_stream_service() -> StreamService:
     return StreamService()
+
+
+def get_zone_service(db: AsyncSession = Depends(get_db)) -> ZoneService:
+    return ZoneService(ZoneRepository(db), CameraRepository(db))
+
+
+def get_rule_service(db: AsyncSession = Depends(get_db)) -> RuleService:
+    return RuleService(
+        RuleRepository(db),
+        ZoneRepository(db),
+        CameraRepository(db),
+        AuditService(AuditRepository(db)),
+    )
+
+
+def get_alert_service(db: AsyncSession = Depends(get_db)) -> AlertService:
+    return AlertService(AlertRepository(db), CameraEventRepository(db))
 
 
 def require_internal_token(request: Request) -> None:

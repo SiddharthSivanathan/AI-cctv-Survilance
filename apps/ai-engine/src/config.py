@@ -50,6 +50,9 @@ class AIEngineSettings(BaseSettings):
     detections_stream_maxlen: int = Field(default=50)
     stream_poll_interval_seconds: int = Field(default=15)
 
+    # Rule engine
+    rules_refresh_seconds: int = Field(default=30)
+
     @property
     def class_ids(self) -> list[int]:
         return list(DEFAULT_CLASSES.keys())

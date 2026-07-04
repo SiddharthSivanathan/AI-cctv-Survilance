@@ -17,7 +17,9 @@ from app.core.rtsp import build_authenticated_url
 from app.db.session import get_db, set_org_context
 from app.repositories.camera_repository import CameraRepository
 from app.repositories.organization_repository import OrganizationRepository
-from app.services import CameraHealthService
+from app.repositories.rule_repository import RuleRepository, ZoneRepository
+from app.schemas.event import IngestEventsRequest
+from app.services import CameraHealthService, EventService
 
 router = APIRouter(
     prefix="/internal", tags=["internal"], dependencies=[Depends(require_internal_token)]
@@ -58,3 +60,49 @@ async def camera_streams(db: AsyncSession = Depends(get_db)) -> list[dict[str, A
             )
     await set_org_context(db, None)
     return streams
+
+
+@router.get("/rules-config")
+async def rules_config(db: AsyncSession = Depends(get_db)) -> list[dict[str, Any]]:
+    """Return per-camera rules + zones for the rule engine (internal)."""
+    config: list[dict[str, Any]] = []
+    orgs = await OrganizationRepository(db).list_all()
+    for org in orgs:
+        await set_org_context(db, str(org.id))
+        cameras = await CameraRepository(db).list_enabled_for_org(org.id)
+        rule_repo, zone_repo = RuleRepository(db), ZoneRepository(db)
+        for camera in cameras:
+            rules = await rule_repo.list_for_org(org.id, camera_id=camera.id)
+            if not rules:
+                continue
+            zones = await zone_repo.list_for_camera(org.id, camera.id)
+            config.append(
+                {
+                    "camera_id": str(camera.id),
+                    "organization_id": str(org.id),
+                    "store_id": str(camera.store_id),
+                    "zones": [{"id": str(z.id), "polygon": z.polygon} for z in zones],
+                    "rules": [
+                        {
+                            "id": str(r.id),
+                            "rule_type": r.rule_type,
+                            "zone_id": str(r.zone_id) if r.zone_id else None,
+                            "severity": r.severity,
+                            "cooldown_seconds": r.cooldown_seconds,
+                            "enabled": r.enabled,
+                            "config": r.config or {},
+                        }
+                        for r in rules
+                    ],
+                }
+            )
+    await set_org_context(db, None)
+    return config
+
+
+@router.post("/events")
+async def ingest_events(
+    payload: IngestEventsRequest, db: AsyncSession = Depends(get_db)
+) -> dict[str, int]:
+    """Ingest business events from the rule engine (dedup + open/resolve + alerts)."""
+    return await EventService(db).ingest(payload.events)

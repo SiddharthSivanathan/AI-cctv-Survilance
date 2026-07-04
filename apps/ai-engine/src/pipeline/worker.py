@@ -25,6 +25,9 @@ from src.redis_streams import (
     FRAMES_STREAM,
     latest_detection_key,
 )
+from src.rules.config_cache import RulesConfigCache
+from src.rules.emitter import EventEmitter
+from src.rules.engine import RuleEngine
 
 logger = structlog.get_logger("worker")
 
@@ -47,6 +50,9 @@ class DetectionWorker:
         self._consumer = consumer_name
         self._detector = YoloDetector()
         self._trackers: dict[str, IouTracker] = {}
+        self._rule_engine = RuleEngine()
+        self._rules_config = RulesConfigCache()
+        self._event_emitter = EventEmitter()
 
     def ensure_group(self) -> None:
         try:
@@ -94,8 +100,21 @@ class DetectionWorker:
         tracker = self._trackers.setdefault(camera_id, IouTracker())
         detections = tracker.update(detections)
 
-        payload = build_payload(camera_id, detections, time.time())
+        now = time.time()
+        payload = build_payload(camera_id, detections, now)
         self._publish(camera_id, payload)
+
+        # Rule evaluation (in-worker, DB-free). Emits business events on change.
+        self._rules_config.maybe_refresh(now)
+        events = self._rule_engine.evaluate(
+            camera_id,
+            detections,
+            self._rules_config.rules_for(camera_id),
+            self._rules_config.zones_for(camera_id),
+            now,
+        )
+        if events:
+            self._event_emitter.emit(events)
 
     def _publish(self, camera_id: str, payload: dict) -> None:
         data = json.dumps(payload)

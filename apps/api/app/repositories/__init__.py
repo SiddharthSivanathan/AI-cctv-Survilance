@@ -5,6 +5,12 @@ from app.repositories.camera_repository import CameraRepository
 from app.repositories.membership_repository import MembershipRepository
 from app.repositories.organization_repository import OrganizationRepository
 from app.repositories.refresh_token_repository import RefreshTokenRepository
+from app.repositories.rule_repository import (
+    AlertRepository,
+    CameraEventRepository,
+    RuleRepository,
+    ZoneRepository,
+)
 from app.repositories.store_repository import StoreRepository
 from app.repositories.user_repository import UserRepository
 from app.repositories.verification_repository import (
@@ -13,13 +19,17 @@ from app.repositories.verification_repository import (
 )
 
 __all__ = [
+    "AlertRepository",
     "AuditRepository",
+    "CameraEventRepository",
     "CameraRepository",
     "EmailVerificationRepository",
     "MembershipRepository",
     "OrganizationRepository",
     "PasswordResetRepository",
     "RefreshTokenRepository",
+    "RuleRepository",
     "StoreRepository",
     "UserRepository",
+    "ZoneRepository",
 ]

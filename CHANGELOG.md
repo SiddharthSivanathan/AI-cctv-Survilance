@@ -7,6 +7,12 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ## [Unreleased]
 
 ### Added
+- **Phase 8 — Rule Engine** (backend + frontend vertical slice):
+  - Rule engine module inside the AI worker: point-in-polygon zone membership, per-camera in-memory state, evaluators (queue/occupancy/loitering/unattended) with OPEN→RESOLVED lifecycle and cooldowns; config cache + event emitter wired into the detection worker.
+  - API: zones/rules/camera_events/alerts models + migration (all RLS); zone + rule CRUD; Event Service (sole DB writer — dedup, open/resolve, alert creation); internal `rules-config` + `events` endpoints; events/alerts read + acknowledge.
+  - Frontend: no-code rule builder, zone editor (draw polygons on the camera thumbnail), Rules/Alert-Center/Events pages; Rules, Alerts, Events enabled in the sidebar.
+  - Tests: pure rule-engine (open/resolve, cooldown, loitering, unattended, geometry) + API (rule CRUD/isolation, event dedup + open/resolve, acknowledge).
+  - Only business events persisted; real-time WebSocket → Phase 9, notification delivery → Phase 10.
 - **Phase 7 — AI Vision Pipeline** (stateless detector; backend + overlay):
   - ffmpeg frame sampler (reads MediaMTX internal RTSP at 2 fps, 640×640) → capped Redis frames stream; sampler manager provisions paths and reconciles from `GET /internal/cameras/streams`.
   - YOLOv11s detector (Ultralytics, lazy-loaded, pure parse function) + IOU tracker (ByteTrack-swappable via `supervision`).

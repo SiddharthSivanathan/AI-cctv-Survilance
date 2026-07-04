@@ -23,6 +23,10 @@ from app.services.email.sender import EmailMessage, EmailSender
 
 _TABLES = (
     "audit_logs",
+    "alerts",
+    "camera_events",
+    "rules",
+    "zones",
     "cameras",
     "stores",
     "password_reset_tokens",
@@ -68,9 +72,9 @@ async def _ensure_schema() -> bool:
                     "WITH CHECK (true)"
                 )
             )
-            # RLS for stores + cameras (matches migrations 0002/0003).
+            # RLS for org-scoped business tables (matches migrations 0002-0004).
             org_check = "organization_id = NULLIF(current_setting('app.current_org', true), '')::uuid"
-            for table in ("stores", "cameras"):
+            for table in ("stores", "cameras", "zones", "rules", "camera_events", "alerts"):
                 for stmt in _rls_sql(table, with_check=org_check):
                     await conn.execute(text(stmt))
         _db_ready = True
