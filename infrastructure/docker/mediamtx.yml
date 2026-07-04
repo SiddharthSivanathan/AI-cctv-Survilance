@@ -1,0 +1,27 @@
+# MediaMTX configuration for VisionOps AI.
+# WebRTC-only media plane. RTSP/RTMP/HLS/SRT servers are disabled — the gateway
+# fronts WebRTC signaling; paths are provisioned at runtime via the control API.
+
+logLevel: info
+
+# Control API (used by the gateway to add on-demand source paths). Internal only.
+api: yes
+apiAddress: :9997
+
+# WebRTC (WHEP). Signaling is proxied by the gateway; media (ICE) is direct.
+webrtc: yes
+webrtcAddress: :8889
+# Media UDP port — must be reachable by the browser (exposed in docker-compose).
+webrtcLocalUDPAddress: :8189
+# Advertise a browser-reachable host in ICE candidates. For production set this
+# to the public IP/hostname (and add a TURN server for restrictive networks).
+webrtcAdditionalHosts: [localhost]
+
+# Disable protocols we don't use in V1.
+rtsp: no
+rtmp: no
+hls: no
+srt: no
+
+# Paths are added dynamically by the gateway via the control API.
+paths: {}

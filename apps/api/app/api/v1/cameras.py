@@ -6,7 +6,12 @@ import uuid
 
 from fastapi import APIRouter, Depends, Query, status
 
-from app.core.deps import AuthContext, get_camera_service, require_membership
+from app.core.deps import (
+    AuthContext,
+    get_camera_service,
+    get_stream_service,
+    require_membership,
+)
 from app.schemas.camera import (
     CameraResponse,
     ConnectionTestResult,
@@ -14,7 +19,8 @@ from app.schemas.camera import (
     TestConnectionRequest,
     UpdateCameraRequest,
 )
-from app.services import CameraService
+from app.schemas.stream import LiveStreamResponse
+from app.services import CameraService, StreamService
 
 router = APIRouter(prefix="/cameras", tags=["cameras"])
 
@@ -79,6 +85,18 @@ async def update_camera(
         data=payload,
     )
     return CameraResponse.model_validate(camera)
+
+
+@router.post("/{camera_id}/live", response_model=LiveStreamResponse)
+async def start_live(
+    camera_id: uuid.UUID,
+    ctx: AuthContext = Depends(require_membership),
+    camera_service: CameraService = Depends(get_camera_service),
+    stream_service: StreamService = Depends(get_stream_service),
+) -> LiveStreamResponse:
+    """Authorize live viewing and return a short-lived WebRTC playback token."""
+    camera = await camera_service.get(camera_id, _org(ctx))
+    return await stream_service.start_live(camera)
 
 
 @router.post("/{camera_id}/test", response_model=CameraResponse)

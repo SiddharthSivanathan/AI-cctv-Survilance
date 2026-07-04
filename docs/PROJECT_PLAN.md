@@ -74,8 +74,17 @@ Vertical slice. ONVIF/discovery deferred per owner; focus on reliable RTSP valid
 - ⚠️ Real ffmpeg RTSP capture needs a live camera + Docker to verify
 - ⬜ **Owner approval to proceed to Phase 6**
 
-## Phase 6 — Live Streaming Service ⬜
-Go gateway RTSP ingest · WebRTC/HLS · camera grid live view.
+## Phase 6 — Live Streaming Service ⏸️ (built — awaiting approval)
+Vertical slice. WebRTC-only via MediaMTX; backend-issued playback tokens.
+- ✅ Go media gateway (`apps/gateway`, stdlib only): MediaMTX provisioning, HS256 token verify, authorizing WHEP reverse-proxy, health
+- ✅ MediaMTX config + docker-compose services (mediamtx internal, gateway public); ffmpeg-free (media plane)
+- ✅ API: `POST /cameras/{id}/live` → authorize, decrypt RTSP, provision, issue short-lived token + whep_url; StreamService
+- ✅ Frontend: WHEP WebRTC LivePlayer (idle/connecting/live/reconnecting/error + auto-reconnect), camera detail live view, live grid (1/4/9), Live nav
+- ✅ Tests: gateway token/routing (Go); API stream token issuance + tenant scoping (gateway mocked)
+- ✅ CI: added Go gateway job (gofmt/vet/build/test)
+- ⚠️ Least-verifiable phase: needs Go + Docker + MediaMTX + real RTSP camera to confirm live playback
+- ⬜ **Owner approval to proceed to Phase 7**
+- ℹ️ AI frame ingestion (ffmpeg→Redis) intentionally deferred to Phase 7
 
 ## Phase 7 — AI Vision Pipeline ⬜
 YOLOv11 + ByteTrack · detections → TimescaleDB · conditional enrichment (fire/smoke, PPE, pose, LPR, OCR, VLM).
@@ -98,4 +107,4 @@ E2E tests · security hardening · K8s + Helm · GPU node pools · observability
 ---
 
 ## Next recommended action
-**Verify & approve Phase 5** (cameras slice), then I present the Phase 6 plan (Live Streaming Service — Go media gateway, WebRTC/HLS, camera grid live view) with the exact file list and **stop again** before writing code — per Rule 3.
+**Verify & approve Phase 6** (live streaming slice), then I present the Phase 7 plan (AI Vision Pipeline — ffmpeg frame sampler → Redis → YOLO detection → tracking → events) with the exact file list and **stop again** before writing code — per Rule 3.

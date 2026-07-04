@@ -1,0 +1,14 @@
+{
+  "name": "@visionops/gateway",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Turbo wrapper for the Go media gateway (WebRTC authz proxy)",
+  "license": "MIT",
+  "scripts": {
+    "dev": "go run ./cmd/gateway",
+    "build": "go build ./...",
+    "lint": "test -z \"$(gofmt -l .)\" && go vet ./...",
+    "typecheck": "go build ./...",
+    "test": "go test ./..."
+  }
+}

@@ -115,6 +115,33 @@ services:
       redis:
         condition: service_healthy
 
+  mediamtx:
+    image: bluenviron/mediamtx:latest
+    container_name: visionops-mediamtx
+    restart: unless-stopped
+    volumes:
+      - ./infrastructure/docker/mediamtx.yml:/mediamtx.yml:ro
+    ports:
+      # WebRTC media (ICE) — must be reachable by the browser. API (9997) and
+      # WebRTC signaling (8889) stay internal; the gateway proxies them.
+      - "8189:8189/udp"
+
+  gateway:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.gateway
+    container_name: visionops-gateway
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      GATEWAY_PORT: "8080"
+      MEDIAMTX_API_URL: http://mediamtx:9997
+      MEDIAMTX_WEBRTC_URL: http://mediamtx:8889
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mediamtx
+
 volumes:
   postgres_data:
   redis_data:

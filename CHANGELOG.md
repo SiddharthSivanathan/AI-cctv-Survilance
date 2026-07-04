@@ -7,6 +7,13 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ## [Unreleased]
 
 ### Added
+- **Phase 6 — Live Streaming Service** (backend + gateway + frontend vertical slice):
+  - New Go media gateway (`apps/gateway`, standard library only): provisions on-demand MediaMTX paths, verifies backend-issued HS256 playback tokens, and authorizing-reverse-proxies WHEP signaling (MediaMTX stays internal).
+  - MediaMTX added as the WebRTC media plane; docker-compose services (`mediamtx`, `gateway`) + config.
+  - API `POST /cameras/{id}/live`: tenant-authorized, decrypts RTSP source, provisions the path, issues a short-lived token + `whep_url`.
+  - Frontend: WHEP WebRTC `LivePlayer` (loading/live/reconnecting/error, auto-reconnect), camera detail live view, live grid (1×1/2×2/3×3), Live nav entry.
+  - Tests: gateway token/routing (Go) + API stream token issuance & tenant scoping; CI Go job added.
+  - WebRTC only (no HLS/DASH). AI frame ingestion deferred to Phase 7.
 - **Phase 5 — Camera Management & RTSP Integration** (backend + frontend vertical slice):
   - `cameras` table + migration with Row-Level Security; store-ownership validation on create/update.
   - RTSP credentials encrypted at rest (Fernet); passwords never returned or logged; `rtsp_url` userinfo stripped; `has_credentials` flag; blank-password-keeps-existing on edit.

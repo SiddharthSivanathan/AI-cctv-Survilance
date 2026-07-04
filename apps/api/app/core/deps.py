@@ -39,6 +39,7 @@ from app.services import (
     OrganizationService,
     RequestMeta,
     StoreService,
+    StreamService,
     TokenService,
 )
 from app.services.email import ConsoleEmailSender
@@ -111,6 +112,10 @@ def get_camera_service(db: AsyncSession = Depends(get_db)) -> CameraService:
         AuditService(AuditRepository(db)),
         ObjectStorage(),
     )
+
+
+def get_stream_service() -> StreamService:
+    return StreamService()
 
 
 def require_internal_token(request: Request) -> None:

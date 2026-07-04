@@ -70,6 +70,12 @@ class Settings(BaseSettings):
     camera_offline_threshold_seconds: int = Field(default=300)
     rtsp_probe_timeout_seconds: int = Field(default=12)
 
+    # Live streaming (MediaMTX + Go gateway)
+    stream_jwt_secret: str = Field(default="change-me-stream-secret")
+    stream_token_ttl_seconds: int = Field(default=60)
+    gateway_internal_url: str = Field(default="http://gateway:8080")
+    gateway_public_url: str = Field(default="http://localhost:8080")
+
     # Object storage (S3 / MinIO)
     s3_endpoint: str = Field(default="http://localhost:9000")
     s3_access_key: str = Field(default="visionops")
