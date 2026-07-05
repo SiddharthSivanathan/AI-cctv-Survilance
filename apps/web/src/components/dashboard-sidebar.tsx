@@ -17,6 +17,7 @@ import { cn } from '@visionops/utils';
 import { Button } from '@visionops/ui';
 import { authApi } from '@/features/auth/api';
 import { useAuth } from '@/features/auth/use-auth';
+import { ConnectionStatus } from '@/components/connection-status';
 
 const NAV = [
   { href: '/dashboard', label: 'Overview', icon: LayoutDashboard, enabled: true },
@@ -110,9 +111,14 @@ export function DashboardSidebar() {
       </nav>
 
       <div className="border-t p-3">
-        <div className="mb-2 px-2 text-sm">
-          <p className="truncate font-medium">{user?.user.full_name}</p>
-          <p className="truncate text-xs text-muted-foreground">{user?.user.email}</p>
+        <div className="mb-2 flex items-center justify-between px-2">
+          <div className="min-w-0 text-sm">
+            <p className="truncate font-medium">{user?.user.full_name}</p>
+            <p className="truncate text-xs text-muted-foreground">{user?.user.email}</p>
+          </div>
+        </div>
+        <div className="mb-2">
+          <ConnectionStatus />
         </div>
         <Button variant="outline" size="sm" className="w-full" onClick={logout}>
           Log out

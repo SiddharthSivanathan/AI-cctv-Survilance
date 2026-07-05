@@ -18,6 +18,7 @@ import {
 } from '@visionops/ui';
 import { formatDateTime } from '@visionops/utils';
 import { useOrganization, useUpdateOrganization, useUploadLogo } from '@/features/organizations/hooks';
+import { useUiStore } from '@/stores/ui-store';
 
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'INR', 'AED', 'SGD', 'AUD', 'CAD'];
 
@@ -40,6 +41,8 @@ export default function SettingsPage() {
   const [alertsOn, setAlertsOn] = useState(true);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const soundEnabled = useUiStore((s) => s.soundEnabled);
+  const setSoundEnabled = useUiStore((s) => s.setSoundEnabled);
 
   const { register, handleSubmit, reset } = useForm<FormValues>();
 
@@ -198,14 +201,29 @@ export default function SettingsPage() {
           <CardHeader>
             <CardTitle className="text-base">Notifications</CardTitle>
           </CardHeader>
-          <CardContent className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium">Email alerts</p>
-              <p className="text-sm text-muted-foreground">
-                Receive AI alerts by email when they trigger.
-              </p>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">Email alerts</p>
+                <p className="text-sm text-muted-foreground">
+                  Receive AI alerts by email when they trigger.
+                </p>
+              </div>
+              <Switch checked={alertsOn} onCheckedChange={setAlertsOn} aria-label="Email alerts" />
             </div>
-            <Switch checked={alertsOn} onCheckedChange={setAlertsOn} aria-label="Email alerts" />
+            <div className="flex items-center justify-between border-t pt-4">
+              <div>
+                <p className="text-sm font-medium">Alert sound</p>
+                <p className="text-sm text-muted-foreground">
+                  Play a sound for high-severity real-time alerts.
+                </p>
+              </div>
+              <Switch
+                checked={soundEnabled}
+                onCheckedChange={setSoundEnabled}
+                aria-label="Alert sound"
+              />
+            </div>
           </CardContent>
         </Card>
 
