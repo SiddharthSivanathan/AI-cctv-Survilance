@@ -24,6 +24,8 @@ class UpdateOrganizationRequest(BaseModel):
     timezone: str | None = Field(default=None, max_length=64)
     currency: str | None = Field(default=None, max_length=8)
     alert_email_enabled: bool | None = Field(default=None)
+    notify_critical_only: bool | None = Field(default=None)
+    daily_summary_email: bool | None = Field(default=None)
 
 
 class OrganizationResponse(BaseModel):
@@ -43,4 +45,6 @@ class OrganizationResponse(BaseModel):
     timezone: str
     currency: str
     alert_email_enabled: bool
+    notify_critical_only: bool
+    daily_summary_email: bool
     created_at: datetime

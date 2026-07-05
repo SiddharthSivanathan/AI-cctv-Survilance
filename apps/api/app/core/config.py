@@ -47,6 +47,16 @@ class Settings(BaseSettings):
     password_reset_expire_hours: int = Field(default=2)
     email_from: str = Field(default="no-reply@visionops.ai")
 
+    # SMTP (used when configured; otherwise emails are logged in dev)
+    smtp_host: str | None = Field(default=None)
+    smtp_port: int = Field(default=587)
+    smtp_user: str | None = Field(default=None)
+    smtp_password: str | None = Field(default=None)
+    smtp_use_tls: bool = Field(default=True)
+
+    # Celery broker (API enqueues async email/notification tasks)
+    celery_broker_url: str = Field(default="redis://localhost:6379/1")
+
     # Auth rate limits (requests per window, for slowapi)
     auth_rate_limit: str = Field(default="10/minute")
 

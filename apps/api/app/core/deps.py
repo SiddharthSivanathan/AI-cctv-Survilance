@@ -36,13 +36,16 @@ from app.repositories import (
     UserRepository,
     ZoneRepository,
 )
+from app.repositories.notification_repository import NotificationRepository
 from app.services import (
     AlertService,
     AnalyticsService,
     AuditService,
     AuthService,
     CameraService,
+    NotificationService,
     OrganizationService,
+    ReportService,
     RequestMeta,
     RuleService,
     StoreService,
@@ -145,6 +148,14 @@ def get_alert_service(db: AsyncSession = Depends(get_db)) -> AlertService:
 
 def get_analytics_service(db: AsyncSession = Depends(get_db)) -> AnalyticsService:
     return AnalyticsService(db)
+
+
+def get_notification_service(db: AsyncSession = Depends(get_db)) -> NotificationService:
+    return NotificationService(NotificationRepository(db))
+
+
+def get_report_service(db: AsyncSession = Depends(get_db)) -> ReportService:
+    return ReportService(db)
 
 
 def require_internal_token(request: Request) -> None:

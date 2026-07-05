@@ -19,10 +19,20 @@ from app.core.pubsub import build_message
 from app.db.session import set_org_context
 from app.models.alert import Alert
 from app.models.camera_event import CameraEvent
+from app.models.notification import Notification
+from app.repositories.organization_repository import OrganizationRepository
 from app.repositories.rule_repository import AlertRepository, CameraEventRepository
 from app.schemas.event import IngestEventItem
 
 logger = get_logger("event_service")
+
+# Event types that trigger an immediate email (when enabled).
+_EMAIL_EVENT_TYPES = {
+    "unattended_billing_counter",
+    "queue_threshold_exceeded",
+    "occupancy_limit_exceeded",
+    "camera_offline",
+}
 
 # Human-readable titles per business event type.
 _TITLES: dict[str, str] = {
@@ -60,21 +70,24 @@ class EventService:
         self._session = session
         self._events = CameraEventRepository(session)
         self._alerts = AlertRepository(session)
+        self._orgs = OrganizationRepository(session)
+        self._org_cache: dict = {}
 
     async def ingest(
         self, items: list[IngestEventItem]
-    ) -> tuple[dict[str, int], list[dict[str, Any]]]:
-        """Persist events and return (summary, broadcast messages).
+    ) -> tuple[dict[str, int], list[dict[str, Any]], list[dict[str, Any]]]:
+        """Persist events and return (summary, ws messages, email jobs).
 
-        Messages are broadcast by the caller AFTER the DB transaction commits,
-        so clients only ever receive committed events.
+        Both broadcasts and emails are dispatched by the caller AFTER the DB
+        transaction commits, so users only ever receive committed events.
         """
         created = resolved = deduped = 0
         messages: list[dict[str, Any]] = []
+        email_jobs: list[dict[str, Any]] = []
         for item in items:
             await set_org_context(self._session, str(item.organization_id))
             if item.status == "open":
-                did = await self._open(item)
+                did = await self._open(item, email_jobs)
                 created += did
                 deduped += 1 - did
                 if did:
@@ -89,7 +102,12 @@ class EventService:
         await set_org_context(self._session, None)
         summary = {"created": created, "resolved": resolved, "deduped": deduped}
         logger.info("events_ingested", **summary)
-        return summary, messages
+        return summary, messages, email_jobs
+
+    async def _org(self, org_id):
+        if org_id not in self._org_cache:
+            self._org_cache[org_id] = await self._orgs.get(org_id)
+        return self._org_cache[org_id]
 
     def _message(self, ws_type: str, item: IngestEventItem) -> dict[str, Any]:
         title, message = _describe(item.event_type, item.metadata)
@@ -105,11 +123,12 @@ class EventService:
             metadata={"eventType": item.event_type, **(item.metadata or {})},
         )
 
-    async def _open(self, item: IngestEventItem) -> int:
+    async def _open(self, item: IngestEventItem, email_jobs: list[dict[str, Any]]) -> int:
         existing = await self._events.get_open_by_key(item.organization_id, item.event_key)
         if existing is not None:
             return 0  # dedup — an open event with this key already exists
         occurred = datetime.fromtimestamp(item.occurred_at, tz=UTC)
+        title, message = _describe(item.event_type, item.metadata)
         event = CameraEvent(
             organization_id=item.organization_id,
             store_id=item.store_id,
@@ -133,7 +152,40 @@ class EventService:
                 status="open",
             )
         )
+        # In-app notification (bell), in the same transaction.
+        self._session.add(
+            Notification(
+                organization_id=item.organization_id,
+                event_type=item.event_type,
+                title=title,
+                message=message,
+                severity=item.severity,
+                camera_id=item.camera_id,
+                store_id=item.store_id,
+                notification_metadata=item.metadata,
+            )
+        )
+        # Email job (dispatched after commit), gated by org preferences.
+        await self._maybe_email(item, title, message, email_jobs)
         return 1
+
+    async def _maybe_email(
+        self, item: IngestEventItem, title: str, message: str, email_jobs: list[dict[str, Any]]
+    ) -> None:
+        if item.event_type not in _EMAIL_EVENT_TYPES:
+            return
+        org = await self._org(item.organization_id)
+        if org is None or not org.alert_email_enabled or not org.contact_email:
+            return
+        if org.notify_critical_only and item.severity not in ("high", "critical"):
+            return
+        email_jobs.append(
+            {
+                "to": org.contact_email,
+                "subject": f"[{org.name}] {title}",
+                "body": f"{message}\n\nSeverity: {item.severity}\n— VisionOps AI",
+            }
+        )
 
     async def _resolve(self, item: IngestEventItem) -> int:
         existing = await self._events.get_open_by_key(item.organization_id, item.event_key)

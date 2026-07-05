@@ -22,6 +22,14 @@ class WorkerSettings(BaseSettings):
     internal_api_token: str = Field(default="change-me-internal-token")
     camera_health_interval_seconds: int = Field(default=60)
 
+    # SMTP (email delivery). If unset, emails are logged instead of sent.
+    smtp_host: str | None = Field(default=None)
+    smtp_port: int = Field(default=587)
+    smtp_user: str | None = Field(default=None)
+    smtp_password: str | None = Field(default=None)
+    smtp_use_tls: bool = Field(default=True)
+    email_from: str = Field(default="no-reply@visionops.ai")
+
 
 @lru_cache
 def get_settings() -> WorkerSettings:

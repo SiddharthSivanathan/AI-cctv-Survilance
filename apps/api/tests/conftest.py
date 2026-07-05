@@ -23,6 +23,8 @@ from app.services.email.sender import EmailMessage, EmailSender
 
 _TABLES = (
     "audit_logs",
+    "reports",
+    "notifications",
     "camera_metrics",
     "alerts",
     "camera_events",
@@ -83,6 +85,8 @@ async def _ensure_schema() -> bool:
                 "camera_events",
                 "alerts",
                 "camera_metrics",
+                "notifications",
+                "reports",
             ):
                 for stmt in _rls_sql(table, with_check=org_check):
                     await conn.execute(text(stmt))

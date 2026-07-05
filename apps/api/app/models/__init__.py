@@ -7,9 +7,11 @@ from app.models.camera import Camera
 from app.models.camera_event import CameraEvent
 from app.models.camera_metric import CameraMetric
 from app.models.membership import Membership
+from app.models.notification import Notification
 from app.models.organization import Organization
 from app.models.password_reset_token import PasswordResetToken
 from app.models.refresh_token import RefreshToken
+from app.models.report import Report
 from app.models.rule import Rule
 from app.models.store import Store
 from app.models.user import User
@@ -24,9 +26,11 @@ __all__ = [
     "CameraMetric",
     "EmailVerificationToken",
     "Membership",
+    "Notification",
     "Organization",
     "PasswordResetToken",
     "RefreshToken",
+    "Report",
     "Rule",
     "Store",
     "User",

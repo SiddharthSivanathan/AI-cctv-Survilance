@@ -15,13 +15,14 @@ from app.core.crypto import DecryptionError, decrypt
 from app.core.deps import require_internal_token
 from app.core.pubsub import publish_many
 from app.core.rtsp import build_authenticated_url
+from app.core.tasks import enqueue_emails
 from app.db.session import get_db, set_org_context
 from app.repositories.camera_repository import CameraRepository
 from app.repositories.organization_repository import OrganizationRepository
 from app.repositories.rule_repository import RuleRepository, ZoneRepository
 from app.schemas.event import IngestEventsRequest
 from app.schemas.metric import IngestMetricsRequest
-from app.services import CameraHealthService, EventService, MetricsService
+from app.services import CameraHealthService, EventService, MetricsService, ReportService
 
 router = APIRouter(
     prefix="/internal", tags=["internal"], dependencies=[Depends(require_internal_token)]
@@ -116,9 +117,11 @@ async def ingest_events(
     Persists first and commits, so real-time subscribers only receive committed
     events (per the Event Service contract).
     """
-    summary, messages = await EventService(db).ingest(payload.events)
+    summary, messages, email_jobs = await EventService(db).ingest(payload.events)
     await db.commit()
+    # Broadcast + enqueue email only after the transaction commits.
     await publish_many(messages)
+    enqueue_emails(email_jobs)
     return summary
 
 
@@ -129,3 +132,20 @@ async def ingest_metrics(
     """Ingest aggregated per-minute camera metrics from the AI worker."""
     written = await MetricsService(db).ingest(payload.metrics)
     return {"written": written}
+
+
+@router.post("/reports/run")
+async def run_scheduled_reports(
+    report_type: str = "daily", db: AsyncSession = Depends(get_db)
+) -> dict[str, int]:
+    """Generate reports of the given type for every organization (Beat-driven)."""
+    orgs = await OrganizationRepository(db).list_all()
+    service = ReportService(db)
+    generated = 0
+    for org in orgs:
+        await set_org_context(db, str(org.id))
+        await service.generate(org.id, report_type=report_type)
+        generated += 1
+    await set_org_context(db, None)
+    await db.commit()
+    return {"generated": generated}

@@ -33,6 +33,8 @@ class Organization(Base, UUIDMixin, TimestampMixin):
     timezone: Mapped[str] = mapped_column(String(64), nullable=False, default="UTC")
     currency: Mapped[str] = mapped_column(String(8), nullable=False, default="USD")
     alert_email_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    notify_critical_only: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    daily_summary_email: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     memberships: Mapped[list[Membership]] = relationship(
         back_populates="organization", cascade="all, delete-orphan"

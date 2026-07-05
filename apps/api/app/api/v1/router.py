@@ -12,7 +12,9 @@ from app.api.v1 import (
     auth,
     cameras,
     internal,
+    notifications,
     organizations,
+    reports,
     rules,
     stores,
     zones,
@@ -27,4 +29,6 @@ api_router.include_router(zones.router)
 api_router.include_router(rules.router)
 api_router.include_router(alerts.router)
 api_router.include_router(analytics.router)
+api_router.include_router(notifications.router)
+api_router.include_router(reports.router)
 api_router.include_router(internal.router)

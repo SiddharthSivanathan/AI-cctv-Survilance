@@ -7,6 +7,12 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ## [Unreleased]
 
 ### Added
+- **Phase 10 — Reports & Notifications:**
+  - In-app notifications (bell, unread badge, mark read/all, history) written in the same transaction as alerts; browser notifications (permission-gated, visible-tab only).
+  - Email alerts via SMTP, dispatched async through Celery after DB commit; gated by org preferences (email on/off, critical-only). Org notification settings consolidated onto the Organization.
+  - Deterministic reports (facts-only executive summary + rule-based recommendations) for daily/weekly/monthly; on-demand + Beat-scheduled generation; in-app view + branded PDF (reportlab) + CSV export.
+  - Reconciled pre-existing uncommitted WIP: kept the Notification model/repo/schemas; removed the duplicate, non-RLS `notification_setting` model in favour of Organization columns.
+  - Tests: notification creation + mark-read, report generation + CSV export.
 - **Phase 9 (part 2) — Dashboard & Analytics:**
   - Aggregated metrics pipeline: AI worker per-minute occupancy/footfall/queue aggregator → `/internal/metrics` → `camera_metrics` table (RLS). No raw telemetry.
   - Analytics API: overview (Redis-cached 30s), timeseries, alert breakdown, camera health — over aggregated metrics + business events.
