@@ -25,9 +25,12 @@ from src.redis_streams import (
     FRAMES_STREAM,
     latest_detection_key,
 )
+from src.metrics.aggregator import MetricsAggregator
+from src.metrics.emitter import MetricsEmitter
 from src.rules.config_cache import RulesConfigCache
 from src.rules.emitter import EventEmitter
 from src.rules.engine import RuleEngine
+from src.rules.geometry import foot_point, point_in_polygon
 
 logger = structlog.get_logger("worker")
 
@@ -53,6 +56,8 @@ class DetectionWorker:
         self._rule_engine = RuleEngine()
         self._rules_config = RulesConfigCache()
         self._event_emitter = EventEmitter()
+        self._metrics = MetricsAggregator()
+        self._metrics_emitter = MetricsEmitter()
 
     def ensure_group(self) -> None:
         try:
@@ -106,15 +111,40 @@ class DetectionWorker:
 
         # Rule evaluation (in-worker, DB-free). Emits business events on change.
         self._rules_config.maybe_refresh(now)
+        zones = self._rules_config.zones_for(camera_id)
         events = self._rule_engine.evaluate(
-            camera_id,
-            detections,
-            self._rules_config.rules_for(camera_id),
-            self._rules_config.zones_for(camera_id),
-            now,
+            camera_id, detections, self._rules_config.rules_for(camera_id), zones, now
         )
         if events:
             self._event_emitter.emit(events)
+
+        # Aggregated metrics (per-minute occupancy / footfall / queue).
+        self._record_metrics(camera_id, detections, zones, now)
+
+    def _record_metrics(self, camera_id: str, detections, zones, now: float) -> None:
+        persons = [d for d in detections if d.class_name == "person"]
+        queue_zones = [z for z in zones.values() if z.zone_type == "queue"]
+        queue_count = sum(
+            1
+            for p in persons
+            if any(point_in_polygon(foot_point(p.bbox), z.polygon) for z in queue_zones)
+        )
+        track_ids = {p.track_id for p in persons if p.track_id is not None}
+        self._metrics.record(camera_id, len(persons), queue_count, track_ids, now)
+
+        due = self._metrics.flush_due(now)
+        if not due:
+            return
+        items: list[dict] = []
+        for metric in due:
+            meta = self._rules_config.meta_for(metric["camera_id"])
+            if not meta:
+                continue
+            org_id, store_id = meta
+            items.append(
+                {"organization_id": org_id, "store_id": store_id or None, **metric}
+            )
+        self._metrics_emitter.emit(items)
 
     def _publish(self, camera_id: str, payload: dict) -> None:
         data = json.dumps(payload)

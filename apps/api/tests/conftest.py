@@ -23,6 +23,7 @@ from app.services.email.sender import EmailMessage, EmailSender
 
 _TABLES = (
     "audit_logs",
+    "camera_metrics",
     "alerts",
     "camera_events",
     "rules",
@@ -74,7 +75,15 @@ async def _ensure_schema() -> bool:
             )
             # RLS for org-scoped business tables (matches migrations 0002-0004).
             org_check = "organization_id = NULLIF(current_setting('app.current_org', true), '')::uuid"
-            for table in ("stores", "cameras", "zones", "rules", "camera_events", "alerts"):
+            for table in (
+                "stores",
+                "cameras",
+                "zones",
+                "rules",
+                "camera_events",
+                "alerts",
+                "camera_metrics",
+            ):
                 for stmt in _rls_sql(table, with_check=org_check):
                     await conn.execute(text(stmt))
         _db_ready = True

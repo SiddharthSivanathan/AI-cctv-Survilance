@@ -23,6 +23,7 @@ class RulesConfigCache:
         self._settings = get_settings()
         self._rules: dict[str, list[Rule]] = {}
         self._zones: dict[str, dict[str, Zone]] = {}
+        self._meta: dict[str, tuple[str, str]] = {}  # camera_id -> (org_id, store_id)
         self._last_refresh = 0.0
 
     def maybe_refresh(self, now: float | None = None) -> None:
@@ -48,10 +49,16 @@ class RulesConfigCache:
     def _load(self, payload: list[dict]) -> None:
         rules: dict[str, list[Rule]] = {}
         zones: dict[str, dict[str, Zone]] = {}
+        meta: dict[str, tuple[str, str]] = {}
         for cam in payload:
             camera_id = cam["camera_id"]
+            meta[camera_id] = (cam.get("organization_id", ""), cam.get("store_id", ""))
             zones[camera_id] = {
-                z["id"]: Zone(id=z["id"], polygon=[tuple(p) for p in z["polygon"]])
+                z["id"]: Zone(
+                    id=z["id"],
+                    polygon=[tuple(p) for p in z["polygon"]],
+                    zone_type=z.get("zone_type", "occupancy"),
+                )
                 for z in cam.get("zones", [])
             }
             rules[camera_id] = [
@@ -71,9 +78,14 @@ class RulesConfigCache:
             ]
         self._rules = rules
         self._zones = zones
+        self._meta = meta
 
     def rules_for(self, camera_id: str) -> list[Rule]:
         return self._rules.get(camera_id, [])
 
     def zones_for(self, camera_id: str) -> dict[str, Zone]:
         return self._zones.get(camera_id, {})
+
+    def meta_for(self, camera_id: str) -> tuple[str, str] | None:
+        """Return (organization_id, store_id) for a camera, if known."""
+        return self._meta.get(camera_id)

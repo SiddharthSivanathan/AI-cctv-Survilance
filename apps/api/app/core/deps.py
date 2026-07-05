@@ -38,6 +38,7 @@ from app.repositories import (
 )
 from app.services import (
     AlertService,
+    AnalyticsService,
     AuditService,
     AuthService,
     CameraService,
@@ -140,6 +141,10 @@ def get_rule_service(db: AsyncSession = Depends(get_db)) -> RuleService:
 
 def get_alert_service(db: AsyncSession = Depends(get_db)) -> AlertService:
     return AlertService(AlertRepository(db), CameraEventRepository(db))
+
+
+def get_analytics_service(db: AsyncSession = Depends(get_db)) -> AnalyticsService:
+    return AnalyticsService(db)
 
 
 def require_internal_token(request: Request) -> None:

@@ -12,6 +12,7 @@ from src.rules.geometry import Polygon
 class Zone:
     id: str
     polygon: Polygon
+    zone_type: str = "occupancy"
 
 
 @dataclass

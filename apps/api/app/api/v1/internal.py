@@ -20,7 +20,8 @@ from app.repositories.camera_repository import CameraRepository
 from app.repositories.organization_repository import OrganizationRepository
 from app.repositories.rule_repository import RuleRepository, ZoneRepository
 from app.schemas.event import IngestEventsRequest
-from app.services import CameraHealthService, EventService
+from app.schemas.metric import IngestMetricsRequest
+from app.services import CameraHealthService, EventService, MetricsService
 
 router = APIRouter(
     prefix="/internal", tags=["internal"], dependencies=[Depends(require_internal_token)]
@@ -78,15 +79,16 @@ async def rules_config(db: AsyncSession = Depends(get_db)) -> list[dict[str, Any
         rule_repo, zone_repo = RuleRepository(db), ZoneRepository(db)
         for camera in cameras:
             rules = await rule_repo.list_for_org(org.id, camera_id=camera.id)
-            if not rules:
-                continue
             zones = await zone_repo.list_for_camera(org.id, camera.id)
             config.append(
                 {
                     "camera_id": str(camera.id),
                     "organization_id": str(org.id),
                     "store_id": str(camera.store_id),
-                    "zones": [{"id": str(z.id), "polygon": z.polygon} for z in zones],
+                    "zones": [
+                        {"id": str(z.id), "zone_type": z.zone_type, "polygon": z.polygon}
+                        for z in zones
+                    ],
                     "rules": [
                         {
                             "id": str(r.id),
@@ -118,3 +120,12 @@ async def ingest_events(
     await db.commit()
     await publish_many(messages)
     return summary
+
+
+@router.post("/metrics")
+async def ingest_metrics(
+    payload: IngestMetricsRequest, db: AsyncSession = Depends(get_db)
+) -> dict[str, int]:
+    """Ingest aggregated per-minute camera metrics from the AI worker."""
+    written = await MetricsService(db).ingest(payload.metrics)
+    return {"written": written}

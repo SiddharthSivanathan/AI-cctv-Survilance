@@ -7,6 +7,12 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ## [Unreleased]
 
 ### Added
+- **Phase 9 (part 2) — Dashboard & Analytics:**
+  - Aggregated metrics pipeline: AI worker per-minute occupancy/footfall/queue aggregator → `/internal/metrics` → `camera_metrics` table (RLS). No raw telemetry.
+  - Analytics API: overview (Redis-cached 30s), timeseries, alert breakdown, camera health — over aggregated metrics + business events.
+  - Dashboard rebuild: 6 KPI cards, footfall/occupancy/queue line charts, camera-health donut, alert breakdowns, recent activity feed, time-range filter, 60s auto-refresh.
+  - Command palette (⌘K, cmdk): navigation, quick actions, theme toggle, and camera/store search.
+  - Tests: metrics aggregator (ai-engine) + analytics endpoints (API).
 - **Phase 9 (part 1) — Real-time WebSockets:**
   - JWT-authenticated, org-scoped WebSocket hub (`/ws/events`); Redis pub/sub fan-out; events broadcast strictly after DB commit.
   - Event envelope (`alert.created`/`alert.resolved`, `camera.offline`/`online`/`reconnected`); Event Service + camera health sweep publish transitions.

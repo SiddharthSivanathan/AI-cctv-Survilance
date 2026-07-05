@@ -5,6 +5,7 @@ from app.models.alert import Alert
 from app.models.audit_log import AuditLog
 from app.models.camera import Camera
 from app.models.camera_event import CameraEvent
+from app.models.camera_metric import CameraMetric
 from app.models.membership import Membership
 from app.models.organization import Organization
 from app.models.password_reset_token import PasswordResetToken
@@ -20,6 +21,7 @@ __all__ = [
     "AuditLog",
     "Camera",
     "CameraEvent",
+    "CameraMetric",
     "EmailVerificationToken",
     "Membership",
     "Organization",
