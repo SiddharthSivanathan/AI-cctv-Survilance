@@ -4,6 +4,20 @@ All notable changes to this project are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] — 2026-07-05 — MVP Complete
+
+### Added
+- **Phase 12 — Testing, Security, Documentation & Production Deployment:**
+  - Single-VPS production stack (`docker-compose.prod.yml`): all services, `restart: unless-stopped` + graceful shutdown, named volumes; only Nginx (80/443) and MediaMTX media (8189/udp) exposed.
+  - Nginx reverse proxy: HTTPS via Let's Encrypt (auto-renew + 6h reload), gzip, security headers, WebSocket upgrade, WHEP proxy, object-storage proxy; **internal service endpoints denied from the internet**.
+  - `.env.production.example`, RS256 key mounting; deploy/update, backup, and restore scripts; Let's Encrypt bootstrap.
+  - Docs: DEPLOYMENT, RUNBOOK, SECURITY, TESTING; CI dependency-audit job + Dependabot.
+  - **Security review:** 4 findings fixed — internet-exposed internal endpoints (High), certbot Nginx reload (Medium), object-storage logo serving (Medium), constant-time internal-token compare (Low).
+- **Phase 11 — Billing & Subscription:** deferred to V2 (manual onboarding/invoicing for V1).
+
+### Notes
+- MVP scope: phases 1–10 + 12. Real inference, live WebRTC, SMTP delivery, and PDF rendering are verified against a running deployment.
+
 ## [Unreleased]
 
 ### Added

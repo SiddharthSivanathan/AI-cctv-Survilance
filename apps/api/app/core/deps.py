@@ -159,11 +159,16 @@ def get_report_service(db: AsyncSession = Depends(get_db)) -> ReportService:
 
 
 def require_internal_token(request: Request) -> None:
-    """Guard internal service endpoints with a shared secret token."""
+    """Guard internal service endpoints with a shared secret token.
+
+    Uses a constant-time comparison to avoid a timing side channel.
+    """
+    import secrets
+
     from app.core.config import get_settings
 
-    token = request.headers.get("x-internal-token")
-    if not token or token != get_settings().internal_api_token:
+    token = request.headers.get("x-internal-token") or ""
+    if not secrets.compare_digest(token, get_settings().internal_api_token):
         raise InvalidTokenError("Invalid internal token")
 
 

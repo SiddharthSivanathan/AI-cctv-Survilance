@@ -145,15 +145,21 @@ is org-scoped and service-based, so Stripe/plans/metering can be added later wit
 major refactoring. Not implemented: Stripe/Razorpay, plans, trials, payments,
 invoices, coupons, usage-based billing, payment webhooks, billing dashboard.
 
-## Phase 12 — Testing, Security, Documentation & Production Deployment 🔄 (in progress)
+## Phase 12 — Testing, Security, Documentation & Production Deployment ✅ COMPLETE
 Single-VPS Docker Compose deployment (K8s deferred to V2 per owner).
 - ✅ Production stack: `docker-compose.prod.yml` (all services, restart+graceful shutdown, named volumes, only Nginx 80/443 + MediaMTX 8189/udp exposed)
-- ✅ Nginx reverse proxy: HTTPS (Let's Encrypt), gzip, security headers, WebSocket upgrade, WHEP proxy; `init-letsencrypt.sh`
+- ✅ Nginx reverse proxy: HTTPS (Let's Encrypt + 6h reload), gzip, security headers, WebSocket upgrade, WHEP proxy, object-storage proxy, internal-endpoint deny; `init-letsencrypt.sh`
 - ✅ `.env.production.example`; RS256 keys mounted; scripts: deploy/update, backup, restore
 - ✅ Docs: DEPLOYMENT.md, RUNBOOK.md, SECURITY.md, TESTING.md
 - ✅ CI dependency audit job + Dependabot; testing coverage matrix
-- 🔄 Security review (owner-requested) + fix Critical/High — running
-- ⬜ Mark v1.0.0 MVP complete (after security review passes)
+- ✅ Security review run: 4 findings, all fixed (1 High: internal endpoints internet-exposed; 2 Medium: cert-reload, logo serving; 1 Low: constant-time token compare)
+
+---
+
+# 🎉 Version 1.0.0 — MVP COMPLETE
+Phases 1–10 + 12 delivered; Phase 11 (Billing) deferred to V2. The platform spans
+auth → orgs → stores → cameras → live streaming → AI detection → rules & alerts →
+real-time dashboard/analytics → notifications & reports → production deployment.
 
 ---
 
