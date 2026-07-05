@@ -39,6 +39,18 @@ function playBeep(): void {
   }
 }
 
+function showBrowserNotification(title: string, body?: string): void {
+  // Only when enabled, permitted, and the dashboard tab is visible.
+  if (!useUiStore.getState().browserNotifications) return;
+  if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+  if (document.visibilityState !== 'visible') return;
+  try {
+    new Notification(title, { body });
+  } catch {
+    /* noop */
+  }
+}
+
 export function RealtimeProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const [status, setStatus] = useState<ConnectionStatus>('connecting');
@@ -58,9 +70,11 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
       else toast.info(event.title ?? 'Update', { description });
 
       if (critical && useUiStore.getState().soundEnabled) playBeep();
+      showBrowserNotification(event.title ?? 'VisionOps AI', description);
 
       queryClient.invalidateQueries({ queryKey: ['alerts'] });
       queryClient.invalidateQueries({ queryKey: ['events'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
       if (event.type.startsWith('camera.')) {
         queryClient.invalidateQueries({ queryKey: ['cameras'] });
       }

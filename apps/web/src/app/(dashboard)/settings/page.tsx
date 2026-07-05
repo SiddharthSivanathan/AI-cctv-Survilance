@@ -39,10 +39,14 @@ export default function SettingsPage() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [alertsOn, setAlertsOn] = useState(true);
+  const [criticalOnly, setCriticalOnly] = useState(true);
+  const [dailySummary, setDailySummary] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const soundEnabled = useUiStore((s) => s.soundEnabled);
   const setSoundEnabled = useUiStore((s) => s.setSoundEnabled);
+  const browserNotifications = useUiStore((s) => s.browserNotifications);
+  const setBrowserNotifications = useUiStore((s) => s.setBrowserNotifications);
 
   const { register, handleSubmit, reset } = useForm<FormValues>();
 
@@ -58,8 +62,18 @@ export default function SettingsPage() {
         currency: org.currency,
       });
       setAlertsOn(org.alert_email_enabled);
+      setCriticalOnly(org.notify_critical_only ?? true);
+      setDailySummary(org.daily_summary_email ?? false);
     }
   }, [org, reset]);
+
+  const enableBrowserNotifications = async (enabled: boolean) => {
+    if (enabled && typeof Notification !== 'undefined' && Notification.permission !== 'granted') {
+      const perm = await Notification.requestPermission();
+      if (perm !== 'granted') return;
+    }
+    setBrowserNotifications(enabled);
+  };
 
   const onSubmit = async (values: FormValues) => {
     setError(null);
@@ -74,6 +88,8 @@ export default function SettingsPage() {
         timezone: values.timezone,
         currency: values.currency,
         alert_email_enabled: alertsOn,
+        notify_critical_only: criticalOnly,
+        daily_summary_email: dailySummary,
       });
       setSaved(true);
     } catch (err) {
@@ -210,6 +226,45 @@ export default function SettingsPage() {
                 </p>
               </div>
               <Switch checked={alertsOn} onCheckedChange={setAlertsOn} aria-label="Email alerts" />
+            </div>
+            <div className="flex items-center justify-between border-t pt-4">
+              <div>
+                <p className="text-sm font-medium">Critical alerts only</p>
+                <p className="text-sm text-muted-foreground">
+                  Only email high & critical severity alerts.
+                </p>
+              </div>
+              <Switch
+                checked={criticalOnly}
+                onCheckedChange={setCriticalOnly}
+                aria-label="Critical only"
+              />
+            </div>
+            <div className="flex items-center justify-between border-t pt-4">
+              <div>
+                <p className="text-sm font-medium">Daily summary email</p>
+                <p className="text-sm text-muted-foreground">
+                  Receive a brief daily summary of alerts.
+                </p>
+              </div>
+              <Switch
+                checked={dailySummary}
+                onCheckedChange={setDailySummary}
+                aria-label="Daily summary"
+              />
+            </div>
+            <div className="flex items-center justify-between border-t pt-4">
+              <div>
+                <p className="text-sm font-medium">Browser notifications</p>
+                <p className="text-sm text-muted-foreground">
+                  Show desktop notifications while the dashboard is open.
+                </p>
+              </div>
+              <Switch
+                checked={browserNotifications}
+                onCheckedChange={enableBrowserNotifications}
+                aria-label="Browser notifications"
+              />
             </div>
             <div className="flex items-center justify-between border-t pt-4">
               <div>

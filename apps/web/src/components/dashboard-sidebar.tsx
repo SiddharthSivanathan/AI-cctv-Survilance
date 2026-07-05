@@ -17,6 +17,7 @@ import { Button } from '@visionops/ui';
 import { authApi } from '@/features/auth/api';
 import { useAuth } from '@/features/auth/use-auth';
 import { ConnectionStatus } from '@/components/connection-status';
+import { NotificationBell } from '@/components/notification-bell';
 
 const NAV = [
   { href: '/dashboard', label: 'Overview', icon: LayoutDashboard, enabled: true },
@@ -26,10 +27,11 @@ const NAV = [
   { href: '/rules', label: 'Rules', icon: SlidersHorizontal, enabled: true },
   { href: '/alerts', label: 'Alerts', icon: Bell, enabled: true },
   { href: '/events', label: 'Events', icon: FileText, enabled: true },
+  { href: '/reports', label: 'Reports', icon: FileText, enabled: true },
   { href: '/settings', label: 'Settings', icon: Settings, enabled: true },
 ] as const;
 
-const SOON = [{ label: 'Reports', icon: FileText }] as const;
+const SOON: { label: string; icon: typeof FileText }[] = [];
 
 export function DashboardSidebar() {
   const pathname = usePathname();
@@ -44,10 +46,11 @@ export function DashboardSidebar() {
 
   return (
     <aside className="flex h-screen w-60 flex-col border-r bg-background">
-      <div className="flex items-center gap-2 px-5 py-5">
+      <div className="flex items-center justify-between px-5 py-5">
         <span className="text-lg font-bold tracking-tight">
           VisionOps<span className="text-muted-foreground"> AI</span>
         </span>
+        <NotificationBell />
       </div>
 
       <button
@@ -98,21 +101,25 @@ export function DashboardSidebar() {
           );
         })}
 
-        <div className="px-3 pb-1 pt-4 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          Coming soon
-        </div>
-        {SOON.map((item) => {
-          const Icon = item.icon;
-          return (
-            <div
-              key={item.label}
-              className="flex cursor-not-allowed items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground/50"
-            >
-              <Icon className="h-4 w-4" />
-              {item.label}
+        {SOON.length > 0 && (
+          <>
+            <div className="px-3 pb-1 pt-4 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Coming soon
             </div>
-          );
-        })}
+            {SOON.map((item) => {
+              const Icon = item.icon;
+              return (
+                <div
+                  key={item.label}
+                  className="flex cursor-not-allowed items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground/50"
+                >
+                  <Icon className="h-4 w-4" />
+                  {item.label}
+                </div>
+              );
+            })}
+          </>
+        )}
       </nav>
 
       <div className="border-t p-3">

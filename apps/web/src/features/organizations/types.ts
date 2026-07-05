@@ -11,6 +11,8 @@ export interface Organization {
   timezone: string;
   currency: string;
   alert_email_enabled: boolean;
+  notify_critical_only: boolean;
+  daily_summary_email: boolean;
   created_at: string;
 }
 
@@ -23,4 +25,6 @@ export interface UpdateOrganizationInput {
   timezone?: string;
   currency?: string;
   alert_email_enabled?: boolean;
+  notify_critical_only?: boolean;
+  daily_summary_email?: boolean;
 }
