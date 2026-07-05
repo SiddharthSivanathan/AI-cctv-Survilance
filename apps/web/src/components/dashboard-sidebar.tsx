@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
-  BarChart3,
   Bell,
   Camera,
   FileText,
@@ -30,10 +29,7 @@ const NAV = [
   { href: '/settings', label: 'Settings', icon: Settings, enabled: true },
 ] as const;
 
-const SOON = [
-  { label: 'Analytics', icon: BarChart3 },
-  { label: 'Reports', icon: FileText },
-] as const;
+const SOON = [{ label: 'Reports', icon: FileText }] as const;
 
 export function DashboardSidebar() {
   const pathname = usePathname();
@@ -53,6 +49,15 @@ export function DashboardSidebar() {
           VisionOps<span className="text-muted-foreground"> AI</span>
         </span>
       </div>
+
+      <button
+        type="button"
+        onClick={() => window.dispatchEvent(new CustomEvent('visionops:command'))}
+        className="mx-3 mb-2 flex items-center justify-between rounded-md border px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent"
+      >
+        <span>Search…</span>
+        <kbd className="rounded border bg-muted px-1.5 py-0.5 text-[10px] font-medium">⌘K</kbd>
+      </button>
 
       {user?.organization && (
         <div className="mx-3 mb-2 flex items-center gap-2 rounded-md border px-3 py-2">
