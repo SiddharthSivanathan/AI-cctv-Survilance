@@ -111,8 +111,17 @@ Vertical slice. Rule engine in the AI worker (in-memory state); Event Service = 
 - ⬜ **Owner approval to proceed to Phase 9**
 - ℹ️ WebSocket real-time → Phase 9; notification delivery → Phase 10
 
-## Phase 9 — Dashboard & Analytics ⬜
-KPI dashboard · heatmaps · footfall · journey · command palette · search · dark/light.
+## Phase 9 — Dashboard & Analytics 🔄 (real-time delivered; analytics pending)
+- ✅ Real-time WebSocket hub: one JWT-auth connection per user, org-scoped via token claim
+- ✅ Redis pub/sub fan-out; broadcast strictly after DB commit (committed events only)
+- ✅ Event envelope (alert.created/resolved, camera.offline/online/reconnected); Event Service + health sweep publish
+- ✅ Heartbeat (30s) + client auto-reconnect ("Reconnecting…" indicator)
+- ✅ Frontend RealtimeProvider: toasts (sonner), optional configurable sound, live query invalidation, connection status
+- ✅ Tests: WS auth rejection, pub/sub envelope
+- ⬜ KPI dashboard charts + analytics aggregation endpoints
+- ⬜ Command palette / global search
+- ⬜ Footfall/occupancy trends (needs aggregated metrics store — owner decision pending)
+- ⚠️ WS end-to-end delivery needs the running stack; auth/envelope logic tested here
 
 ## Phase 10 — Reports & Notifications ⬜
 Scheduled + AI-narrative reports (PDF, RCA) · multi-channel notifications · Alert Center.

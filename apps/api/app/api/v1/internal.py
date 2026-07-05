@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.crypto import DecryptionError, decrypt
 from app.core.deps import require_internal_token
+from app.core.pubsub import publish_many
 from app.core.rtsp import build_authenticated_url
 from app.db.session import get_db, set_org_context
 from app.repositories.camera_repository import CameraRepository
@@ -28,8 +29,12 @@ router = APIRouter(
 
 @router.post("/cameras/health-sweep")
 async def camera_health_sweep(db: AsyncSession = Depends(get_db)) -> dict[str, int]:
-    """Probe all enabled cameras across all organizations; update status."""
-    return await CameraHealthService(db).sweep()
+    """Probe all enabled cameras across all organizations; update + broadcast."""
+    service = CameraHealthService(db)
+    summary = await service.sweep()
+    await db.commit()
+    await publish_many(service.messages)
+    return summary
 
 
 @router.get("/cameras/streams")
@@ -104,5 +109,12 @@ async def rules_config(db: AsyncSession = Depends(get_db)) -> list[dict[str, Any
 async def ingest_events(
     payload: IngestEventsRequest, db: AsyncSession = Depends(get_db)
 ) -> dict[str, int]:
-    """Ingest business events from the rule engine (dedup + open/resolve + alerts)."""
-    return await EventService(db).ingest(payload.events)
+    """Ingest business events (dedup + open/resolve + alerts), then broadcast.
+
+    Persists first and commits, so real-time subscribers only receive committed
+    events (per the Event Service contract).
+    """
+    summary, messages = await EventService(db).ingest(payload.events)
+    await db.commit()
+    await publish_many(messages)
+    return summary

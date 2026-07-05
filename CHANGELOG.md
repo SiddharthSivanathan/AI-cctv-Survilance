@@ -7,6 +7,12 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ## [Unreleased]
 
 ### Added
+- **Phase 9 (part 1) — Real-time WebSockets:**
+  - JWT-authenticated, org-scoped WebSocket hub (`/ws/events`); Redis pub/sub fan-out; events broadcast strictly after DB commit.
+  - Event envelope (`alert.created`/`alert.resolved`, `camera.offline`/`online`/`reconnected`); Event Service + camera health sweep publish transitions.
+  - Server heartbeat + client auto-reconnect; frontend `RealtimeProvider` with toasts (sonner), optional configurable alert sound, live query invalidation, and a connection-status indicator.
+  - Tests: WebSocket auth rejection + pub/sub message envelope.
+  - Dashboard KPI charts, analytics, and command palette remain to be built.
 - **Phase 8 — Rule Engine** (backend + frontend vertical slice):
   - Rule engine module inside the AI worker: point-in-polygon zone membership, per-camera in-memory state, evaluators (queue/occupancy/loitering/unattended) with OPEN→RESOLVED lifecycle and cooldowns; config cache + event emitter wired into the detection worker.
   - API: zones/rules/camera_events/alerts models + migration (all RLS); zone + rule CRUD; Event Service (sole DB writer — dedup, open/resolve, alert creation); internal `rules-config` + `events` endpoints; events/alerts read + acknowledge.

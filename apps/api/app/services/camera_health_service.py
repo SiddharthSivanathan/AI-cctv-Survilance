@@ -12,12 +12,14 @@ offline condition is recorded on the event/audit trail.
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.core.crypto import DecryptionError, decrypt
 from app.core.logging import get_logger
+from app.core.pubsub import build_message
 from app.core.rtsp import ProbeStatus, probe_rtsp
 from app.db.session import set_org_context
 from app.repositories.audit_repository import AuditRepository
@@ -33,9 +35,14 @@ class CameraHealthService:
         self._session = session
         self._settings = get_settings()
         self._audit = AuditService(AuditRepository(session))
+        self.messages: list[dict[str, Any]] = []
 
     async def sweep(self) -> dict[str, int]:
-        """Probe all enabled cameras across all organizations."""
+        """Probe all enabled cameras across all organizations.
+
+        Collects camera status-change broadcast messages in ``self.messages``
+        for the caller to publish after commit.
+        """
         orgs = await OrganizationRepository(self._session).list_all()
         online = offline = alerts = 0
 
@@ -60,16 +67,23 @@ class CameraHealthService:
                     capture_frame=False,
                 )
 
+                previous = camera.status
                 if result.status is ProbeStatus.CONNECTED:
                     camera.status = "online"
                     camera.last_seen_at = now
                     camera.last_error = None
                     camera.offline_alerted_at = None
                     online += 1
+                    if previous == "offline":
+                        self._add_status_message(org.id, camera, "camera.reconnected", now)
+                    elif previous != "online":
+                        self._add_status_message(org.id, camera, "camera.online", now)
                 else:
                     camera.status = "offline"
                     camera.last_error = f"{result.status.value}: {result.message or ''}".strip()
                     offline += 1
+                    if previous != "offline":
+                        self._add_status_message(org.id, camera, "camera.offline", now)
                     reference = camera.last_seen_at or camera.created_at
                     elapsed = (now - reference).total_seconds()
                     if (
@@ -97,3 +111,23 @@ class CameraHealthService:
         }
         logger.info("camera_health_sweep", **summary)
         return summary
+
+    def _add_status_message(self, org_id, camera, ws_type: str, now: datetime) -> None:
+        titles = {
+            "camera.offline": "Camera offline",
+            "camera.online": "Camera online",
+            "camera.reconnected": "Camera reconnected",
+        }
+        self.messages.append(
+            build_message(
+                type=ws_type,
+                organization_id=str(org_id),
+                camera_id=str(camera.id),
+                store_id=str(camera.store_id),
+                severity="high" if ws_type == "camera.offline" else "low",
+                title=titles[ws_type],
+                message=f"{camera.name} is {ws_type.split('.')[1]}.",
+                timestamp=now.isoformat(),
+                metadata={"eventType": ws_type},
+            )
+        )

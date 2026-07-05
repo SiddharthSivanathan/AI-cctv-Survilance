@@ -12,7 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app import __version__
-from app.api.v1 import health
+from app.api.v1 import health, ws
 from app.api.v1.router import api_router
 from app.core.config import get_settings
 from app.core.error_handlers import register_error_handlers
@@ -76,6 +76,9 @@ register_error_handlers(app)
 
 # Liveness/readiness probes at the root (K8s/Docker conventions).
 app.include_router(health.router)
+
+# Real-time WebSocket hub (root path /ws/events).
+app.include_router(ws.router)
 
 # Versioned feature API.
 app.include_router(api_router, prefix=settings.api_v1_prefix)
