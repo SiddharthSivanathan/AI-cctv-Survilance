@@ -138,11 +138,22 @@ Reconciled pre-existing WIP (kept Notification model/repo/schemas; removed dupli
 - ⬜ **Owner approval to proceed to Phase 11**
 - ℹ️ LLM narratives, SMS/Slack/Teams/WhatsApp/push, scheduled report emails → V2
 
-## Phase 11 — Billing & Subscription ⬜
-Stripe · plans · metered usage · invoices · payments.
+## Phase 11 — Billing & Subscription 🚫 DEFERRED TO V2 (owner decision)
+V1 validates the AI platform with real customers; onboarding + invoicing are handled
+manually outside the app (demo → install → agree → invoice → activate). Architecture
+is org-scoped and service-based, so Stripe/plans/metering can be added later without
+major refactoring. Not implemented: Stripe/Razorpay, plans, trials, payments,
+invoices, coupons, usage-based billing, payment webhooks, billing dashboard.
 
-## Phase 12 — Testing, Security & Production Deployment ⬜
-E2E tests · security hardening · K8s + Helm · GPU node pools · observability · runbooks.
+## Phase 12 — Testing, Security, Documentation & Production Deployment 🔄 (in progress)
+Single-VPS Docker Compose deployment (K8s deferred to V2 per owner).
+- ✅ Production stack: `docker-compose.prod.yml` (all services, restart+graceful shutdown, named volumes, only Nginx 80/443 + MediaMTX 8189/udp exposed)
+- ✅ Nginx reverse proxy: HTTPS (Let's Encrypt), gzip, security headers, WebSocket upgrade, WHEP proxy; `init-letsencrypt.sh`
+- ✅ `.env.production.example`; RS256 keys mounted; scripts: deploy/update, backup, restore
+- ✅ Docs: DEPLOYMENT.md, RUNBOOK.md, SECURITY.md, TESTING.md
+- ✅ CI dependency audit job + Dependabot; testing coverage matrix
+- 🔄 Security review (owner-requested) + fix Critical/High — running
+- ⬜ Mark v1.0.0 MVP complete (after security review passes)
 
 ---
 

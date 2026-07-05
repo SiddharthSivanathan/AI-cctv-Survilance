@@ -11,6 +11,23 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  security:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Python dependency audit (non-blocking)
+        run: |
+          pip install pip-audit
+          for app in api ai-engine worker; do
+            echo "== apps/$app =="
+            pip-audit -r <(cd apps/$app && pip install -q -e . 2>/dev/null; pip freeze) || true
+          done
+        continue-on-error: true
+
   frontend:
     name: Frontend (Node)
     runs-on: ubuntu-latest

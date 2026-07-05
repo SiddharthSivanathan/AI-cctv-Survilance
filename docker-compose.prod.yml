@@ -1,0 +1,190 @@
+# VisionOps AI — production stack for a single VPS (Ubuntu 24.04 + Docker Compose).
+#
+#   cp .env.production.example .env   # then fill in real secrets + DOMAIN
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+# Only Nginx (80/443) and the MediaMTX WebRTC media port (8189/udp) are exposed.
+# Everything else stays on the internal Docker network.
+name: visionops
+
+x-restart: &restart
+  restart: unless-stopped
+  stop_grace_period: 30s
+
+services:
+  postgres:
+    <<: *restart
+    image: timescale/timescaledb:2.17.0-pg16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infrastructure/docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    <<: *restart
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    <<: *restart
+    image: minio/minio:latest
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY}
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  mediamtx:
+    <<: *restart
+    image: bluenviron/mediamtx:latest
+    volumes:
+      - ./infrastructure/docker/mediamtx.yml:/mediamtx.yml:ro
+    ports:
+      - "8189:8189/udp" # WebRTC media (ICE) — must be browser-reachable
+
+  api:
+    <<: *restart
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.api
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://redis:6379/0
+      ENVIRONMENT: production
+      JWT_PRIVATE_KEY_PATH: /app/keys/jwt_private.pem
+      JWT_PUBLIC_KEY_PATH: /app/keys/jwt_public.pem
+    volumes:
+      # Generate first on the host: bash scripts/generate_keys.sh
+      - ./apps/api/keys:/app/keys:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # One-shot migration runner (runs `alembic upgrade head` then exits).
+  migrate:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.api
+    command: ["alembic", "upgrade", "head"]
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  web:
+    <<: *restart
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.web
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: https://${DOMAIN}
+    depends_on:
+      - api
+
+  worker:
+    <<: *restart
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.worker
+    env_file: .env
+    environment:
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+      API_INTERNAL_URL: http://api:8000
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  ai-engine:
+    <<: *restart
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.ai-engine
+    env_file: .env
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      API_INTERNAL_URL: http://api:8000
+      GATEWAY_INTERNAL_URL: http://gateway:8080
+      MEDIAMTX_RTSP_URL: rtsp://mediamtx:8554
+    volumes:
+      - models_cache:/models
+    depends_on:
+      redis:
+        condition: service_healthy
+      mediamtx:
+        condition: service_started
+
+  gateway:
+    <<: *restart
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.gateway
+    env_file: .env
+    environment:
+      GATEWAY_PORT: "8080"
+      MEDIAMTX_API_URL: http://mediamtx:9997
+      MEDIAMTX_WEBRTC_URL: http://mediamtx:8889
+      GATEWAY_CORS_ORIGIN: https://${DOMAIN}
+    depends_on:
+      - mediamtx
+
+  nginx:
+    <<: *restart
+    image: nginx:1.27-alpine
+    environment:
+      DOMAIN: ${DOMAIN}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infrastructure/nginx/prod.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - certbot_www:/var/www/certbot:ro
+      - certbot_conf:/etc/letsencrypt:ro
+    depends_on:
+      - web
+      - api
+      - gateway
+
+  certbot:
+    image: certbot/certbot:latest
+    volumes:
+      - certbot_www:/var/www/certbot
+      - certbot_conf:/etc/letsencrypt
+    # Renews certificates twice a day; Nginx picks them up on reload.
+    entrypoint: /bin/sh -c 'trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h & wait $${!}; done'
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
+  models_cache:
+  certbot_www:
+  certbot_conf:
