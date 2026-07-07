@@ -21,8 +21,11 @@ import { useCreateOrganization } from '@/features/auth/hooks';
 import { useAuth } from '@/features/auth/use-auth';
 import { useCreateStore } from '@/features/stores/hooks';
 import { StoreForm } from '@/features/stores/store-form';
+import { useCreateCamera } from '@/features/cameras/hooks';
+import { CameraForm } from '@/features/cameras/camera-form';
 import { ApiError } from '@/lib/api-client';
 import type { CreateStoreInput } from '@/features/stores/types';
+import type { CreateCameraInput } from '@/features/cameras/types';
 
 const companySchema = z.object({
   name: z.string().min(1, 'Company name is required'),
@@ -59,6 +62,7 @@ function OnboardingFlow() {
   const { user } = useAuth();
   const createOrg = useCreateOrganization();
   const createStore = useCreateStore();
+  const createCamera = useCreateCamera();
   const [step, setStep] = useState(user?.needs_onboarding ? 0 : 1);
   const [error, setError] = useState<string | null>(null);
 
@@ -86,6 +90,16 @@ function OnboardingFlow() {
     }
   };
 
+  const submitCamera = async (values: CreateCameraInput) => {
+    setError(null);
+    try {
+      await createCamera.mutateAsync(values);
+      setStep(3);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not add the camera.');
+    }
+  };
+
   return (
     <div className="mx-auto w-full max-w-lg px-6 py-16">
       <Stepper current={step} />
@@ -94,7 +108,9 @@ function OnboardingFlow() {
         <Card>
           <CardHeader>
             <CardTitle>Set up your company</CardTitle>
-            <CardDescription>This becomes your VisionOps workspace. You’re the owner.</CardDescription>
+            <CardDescription>
+              This becomes your VisionOps workspace. You’re the owner.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             {error && (
@@ -112,7 +128,11 @@ function OnboardingFlow() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="industry">Industry (optional)</Label>
-                <Input id="industry" placeholder="Retail, Warehouse, Hospital…" {...register('industry')} />
+                <Input
+                  id="industry"
+                  placeholder="Retail, Warehouse, Hospital…"
+                  {...register('industry')}
+                />
               </div>
               <Button type="submit" className="w-full" disabled={createOrg.isPending}>
                 {createOrg.isPending ? 'Creating…' : 'Continue'}
@@ -151,12 +171,30 @@ function OnboardingFlow() {
       )}
 
       {step === 2 && (
-        <WizardPlaceholder
-          title="Connect your first camera"
-          description="Connect an RTSP/ONVIF camera. Camera setup arrives in an upcoming module."
-          onSkip={() => setStep(3)}
-          onBack={() => setStep(1)}
-        />
+        <Card>
+          <CardHeader>
+            <CardTitle>Connect your first camera</CardTitle>
+            <CardDescription>
+              Enter the RTSP details and test the connection. You can add more cameras later.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <CameraForm
+              onSubmit={submitCamera}
+              submitting={createCamera.isPending}
+              error={error}
+              submitLabel="Add camera & continue"
+            />
+            <div className="flex justify-between border-t pt-4">
+              <Button variant="ghost" onClick={() => setStep(1)}>
+                Back
+              </Button>
+              <Button variant="outline" onClick={() => setStep(3)}>
+                Skip for now
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {step === 3 && (
@@ -164,8 +202,8 @@ function OnboardingFlow() {
           <CardHeader>
             <CardTitle>You’re all set 🎉</CardTitle>
             <CardDescription>
-              Your workspace is ready. Stores, cameras, and AI monitoring unlock as those modules
-              ship.
+              Your workspace is ready. Head to the dashboard to manage cameras, rules, and live
+              monitoring.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -176,35 +214,6 @@ function OnboardingFlow() {
         </Card>
       )}
     </div>
-  );
-}
-
-function WizardPlaceholder({
-  title,
-  description,
-  onSkip,
-  onBack,
-}: {
-  title: string;
-  description: string;
-  onSkip: () => void;
-  onBack: () => void;
-}) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      <CardContent className="flex items-center justify-between gap-3">
-        <Button variant="ghost" onClick={onBack}>
-          Back
-        </Button>
-        <Button variant="outline" onClick={onSkip}>
-          Skip for now
-        </Button>
-      </CardContent>
-    </Card>
   );
 }
 
