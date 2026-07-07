@@ -25,7 +25,7 @@ export function RuleBuilder({ onCreated }: { onCreated?: () => void }) {
   const createRule = useCreateRule();
 
   const [cameraId, setCameraId] = useState('');
-  const [ruleType, setRuleType] = useState(RULE_TYPES[0].value);
+  const [ruleType, setRuleType] = useState<string>(RULE_TYPES[0].value);
   const [zoneId, setZoneId] = useState('');
   const [threshold, setThreshold] = useState(5);
   const [severity, setSeverity] = useState('medium');
@@ -62,7 +62,9 @@ export function RuleBuilder({ onCreated }: { onCreated?: () => void }) {
     <Card>
       <CardHeader>
         <CardTitle className="text-base">New rule</CardTitle>
-        <CardDescription>Trigger an alert when a condition is met in a camera zone.</CardDescription>
+        <CardDescription>
+          Trigger an alert when a condition is met in a camera zone.
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {error && <Alert variant="destructive">{error}</Alert>}
@@ -70,7 +72,13 @@ export function RuleBuilder({ onCreated }: { onCreated?: () => void }) {
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <Label>Camera</Label>
-            <Select value={cameraId} onChange={(e) => { setCameraId(e.target.value); setZoneId(''); }}>
+            <Select
+              value={cameraId}
+              onChange={(e) => {
+                setCameraId(e.target.value);
+                setZoneId('');
+              }}
+            >
               <option value="">Select a camera…</option>
               {cameras.data?.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -147,7 +155,11 @@ export function RuleBuilder({ onCreated }: { onCreated?: () => void }) {
 
         <div className="space-y-1.5">
           <Label>Rule name (optional)</Label>
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={ruleMeta.label} />
+          <Input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={ruleMeta.label}
+          />
         </div>
 
         <Button onClick={submit} disabled={createRule.isPending}>
