@@ -6,7 +6,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "uvicorn app.main:app --reload --host 0.0.0.0 --port 8000",
-    "build": "python -c \"import compileall,sys; sys.exit(0 if compileall.compile_dir('app', quiet=1) else 1)\"",
+    "build": "python3 -c \"import compileall,sys; sys.exit(0 if compileall.compile_dir('app', quiet=1) else 1)\"",
     "lint": "ruff check app tests",
     "format": "ruff format app tests",
     "typecheck": "mypy app",

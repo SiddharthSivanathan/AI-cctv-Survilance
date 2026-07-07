@@ -6,7 +6,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "celery -A src.celery_app worker --beat --loglevel=info",
-    "build": "python -c \"import compileall,sys; sys.exit(0 if compileall.compile_dir('src', quiet=1) else 1)\"",
+    "build": "python3 -c \"import compileall,sys; sys.exit(0 if compileall.compile_dir('src', quiet=1) else 1)\"",
     "lint": "ruff check src tests",
     "typecheck": "mypy src",
     "test": "pytest -q"
