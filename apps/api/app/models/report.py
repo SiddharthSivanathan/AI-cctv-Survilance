@@ -11,8 +11,9 @@ from datetime import UTC, date, datetime
 from typing import Any
 
 from sqlalchemy import Date, DateTime, String, Uuid
-from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
+
+from app.db.types import JSONB
 
 from app.db.base import Base
 from app.models.mixins import OrganizationScopedMixin, UUIDMixin

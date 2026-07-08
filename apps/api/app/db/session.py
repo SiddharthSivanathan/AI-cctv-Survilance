@@ -55,7 +55,13 @@ async def set_org_context(session: AsyncSession, organization_id: str | None) ->
     Uses ``set_config(..., is_local => true)`` which is equivalent to
     ``SET LOCAL``: the value is scoped to the current transaction. RLS policies
     read it via ``current_setting('app.current_org', true)``.
+
+    This is a no-op on non-Postgres backends such as SQLite used for local dev.
     """
+    engine = session.get_bind()
+    if engine is None or engine.dialect.name != "postgresql":
+        return
+
     value = str(organization_id) if organization_id is not None else ""
     await session.execute(
         text("SELECT set_config('app.current_org', :org, true)"),

@@ -5,16 +5,44 @@ values come from the environment / .env file.
 """
 
 from functools import lru_cache
+from pathlib import Path
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from sqlalchemy.engine import make_url
+
+
+def _find_upwards(filename: str) -> Path | None:
+    """Search from this file's directory upward for ``filename``.
+
+    Works both when running from the source tree (repo-level .env) and inside a
+    container where the code lives at a different depth. Returns ``None`` when
+    not found — the process environment then supplies configuration.
+    """
+    for parent in Path(__file__).resolve().parents:
+        candidate = parent / filename
+        if candidate.exists():
+            return candidate
+    return None
+
+
+def _repo_env_file() -> str:
+    found = _find_upwards(".env")
+    return str(found) if found else ".env"
+
+
+def _default_database_url() -> str:
+    # Fallback for local dev/tests only; real deployments set DATABASE_URL.
+    env = _find_upwards(".env")
+    root = env.parent if env else Path.cwd()
+    return f"sqlite+aiosqlite:///{(root / 'visionops.db').as_posix()}"
 
 
 class Settings(BaseSettings):
     """Typed application settings."""
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=_repo_env_file(),
         env_file_encoding="utf-8",
         extra="ignore",
         case_sensitive=False,
@@ -61,12 +89,27 @@ class Settings(BaseSettings):
     auth_rate_limit: str = Field(default="10/minute")
 
     # Database
-    database_url: str = Field(
-        default="postgresql+asyncpg://visionops:visionops_dev_password@localhost:5432/visionops"
-    )
+    database_url: str = Field(default_factory=_default_database_url)
 
     # Redis
     redis_url: str = Field(default="redis://localhost:6379/0")
+
+    @field_validator("database_url", mode="before")
+    def normalize_database_url(cls, value: str | None) -> str:
+        if not value:
+            return value
+
+        url = make_url(value)
+
+        if url.drivername.startswith("sqlite") and url.database:
+            # Resolve relative SQLite paths relative to the repo root so the app
+            # is not dependent on the current working directory.
+            path = Path(url.database)
+            if not path.is_absolute():
+                path = Path(__file__).resolve().parents[4] / path
+            return f"sqlite+aiosqlite:///{path.as_posix()}"
+
+        return value
 
     # Credential encryption (Fernet key, base64 32 bytes). Dev default below is
     # NOT for production — set CREDENTIALS_ENCRYPTION_KEY from a secret/KMS.

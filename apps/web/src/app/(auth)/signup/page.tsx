@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -27,6 +28,7 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 export default function SignupPage() {
+  const router = useRouter();
   const registerMutation = useRegister();
   const [error, setError] = useState<string | null>(null);
   const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
@@ -38,8 +40,12 @@ export default function SignupPage() {
   const onSubmit = async (values: FormValues) => {
     setError(null);
     try {
-      await registerMutation.mutateAsync(values);
-      setSubmittedEmail(values.email);
+      const result = await registerMutation.mutateAsync(values);
+      if (result?.message?.toLowerCase().includes('check your email')) {
+        setSubmittedEmail(values.email);
+        return;
+      }
+      router.replace('/onboarding');
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Something went wrong. Please try again.');
     }

@@ -5,7 +5,10 @@ FROM python:3.12-slim
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    PIP_NO_CACHE_DIR=1
+    PIP_NO_CACHE_DIR=1 \
+    # Resilience for the large ML wheels (torch) on flaky connections.
+    PIP_DEFAULT_TIMEOUT=120 \
+    PIP_RETRIES=10
 
 WORKDIR /app
 
@@ -16,9 +19,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
+# Copy the build inputs (pyproject + package source) before installing, since
+# `pip install .` builds the local wheel and needs the source tree present.
 COPY apps/ai-engine/pyproject.toml ./pyproject.toml
-# Install the ML extra (ultralytics pulls torch; onnxruntime for prod inference).
-RUN pip install --upgrade pip && pip install ".[dev,ml]"
+COPY apps/ai-engine/src ./src
+# Install CPU-only torch/torchvision from PyTorch's CPU index FIRST. The default
+# PyPI aarch64 torch wheel pulls ~1.5GB of NVIDIA CUDA libraries that are useless
+# on this CPU/arm64 target (V1 is CPU inference). Pre-installing the CPU build
+# satisfies ultralytics' torch requirement, so the ml extra below won't pull the
+# CUDA variant.
+RUN pip install --upgrade pip \
+    && pip install --index-url https://download.pytorch.org/whl/cpu torch torchvision \
+    && pip install ".[dev,ml]"
 
 COPY apps/ai-engine/ ./
 

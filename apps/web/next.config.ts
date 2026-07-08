@@ -3,6 +3,9 @@ import type { NextConfig } from 'next';
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // Linting runs as its own pipeline step (`pnpm lint`), so `next build`
+  // does not re-run ESLint. Type errors still fail the build.
+  eslint: { ignoreDuringBuilds: true },
   // Transpile shared workspace packages that ship raw TS.
   transpilePackages: ['@visionops/ui', '@visionops/utils', '@visionops/types', '@visionops/sdk'],
   async headers() {

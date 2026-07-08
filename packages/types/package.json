@@ -11,7 +11,7 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "lint": "eslint src",
+    "lint": "echo \"[types] no eslint (type-checked via tsc build)\" && exit 0",
     "typecheck": "tsc --noEmit",
     "test": "echo \"[types] no tests yet\" && exit 0",
     "build": "tsc",

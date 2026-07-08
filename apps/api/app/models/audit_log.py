@@ -7,10 +7,10 @@ from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import DateTime, Index, String, Uuid
-from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
+from app.db.types import JSONB
 from app.models.mixins import UUIDMixin
 
 

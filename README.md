@@ -30,10 +30,24 @@ Node ≥ 20 + pnpm ≥ 9 (`corepack enable`) · Python ≥ 3.12 · Docker + Dock
 
 ## Quick start
 ```bash
-cp .env.example .env
-bash scripts/bootstrap.sh          # install JS + Python deps
-docker compose up --build          # full stack (web:3000, api:8000, +infra)
+cp .env.example .env    # if you don't already have a .env
+pnpm install            # JS deps (tooling + editor IntelliSense)
+npm run dev             # or `pnpm dev` — build + start the whole stack via Docker
 ```
+`npm run dev` builds and starts web (3000), api (8000) and all infra. The API
+**auto-applies DB migrations on startup**, so there's no manual schema step.
+Open http://localhost:3000 and register.
+
+> Other scripts: `npm run dev:down` (stop) · `dev:logs` (tail) · `dev:web`
+> (frontend only, no Docker) · `dev:native` (run everything natively — needs
+> local Python 3.12 + Go, not required on most machines).
+
+Dev doesn't send real email — grab your verification link from the logs:
+```bash
+docker compose logs api | grep -oE 'http://localhost:3000/verify-email\?token=[A-Za-z0-9_-]+' | tail -1
+```
+See **[docs/RUNNING.md](docs/RUNNING.md)** for the full step-by-step (VS Code /
+Cursor / JetBrains setup, editor IntelliSense, and troubleshooting).
 
 ### Verify the foundation
 ```bash
@@ -57,6 +71,7 @@ curl localhost:3000/health     # web liveness
 ## Documentation
 | Doc | Purpose |
 |---|---|
+| [Running locally](docs/RUNNING.md) | Step-by-step run + editor setup (VS Code, Cursor, JetBrains) |
 | [Product Vision](docs/PRODUCT_VISION.md) | Why this exists, who it's for |
 | [PRD](docs/PRD.md) | Features, NFRs, risks |
 | [Architecture](ARCHITECTURE.md) | Three-plane system design |

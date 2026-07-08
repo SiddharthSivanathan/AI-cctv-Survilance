@@ -3,7 +3,6 @@
 import uuid
 from datetime import UTC, datetime, timedelta
 
-import pytest
 from sqlalchemy import select
 
 import app.services.camera_health_service as health_module

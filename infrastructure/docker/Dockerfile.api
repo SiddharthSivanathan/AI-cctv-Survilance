@@ -15,7 +15,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
+# Copy the build inputs (pyproject + package source) before installing, since
+# `pip install .` builds the local wheel and needs the source tree present.
 COPY apps/api/pyproject.toml ./pyproject.toml
+COPY apps/api/app ./app
 RUN pip install --upgrade pip && pip install ".[dev]"
 
 COPY apps/api/ ./

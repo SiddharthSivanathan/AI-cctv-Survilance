@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 /* Design tokens (HSL channels) consumed by the Tailwind preset + shadcn/ui. */
 @layer base {
   :root {

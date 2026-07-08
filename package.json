@@ -11,7 +11,11 @@
   },
   "packageManager": "pnpm@9.12.0",
   "scripts": {
-    "dev": "turbo run dev",
+    "dev": "docker compose up --build",
+    "dev:down": "docker compose down",
+    "dev:logs": "docker compose logs -f",
+    "dev:web": "pnpm --filter @visionops/web dev",
+    "dev:native": "turbo run dev",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "test": "turbo run test",
@@ -24,9 +28,13 @@
   "devDependencies": {
     "@commitlint/cli": "^19.5.0",
     "@commitlint/config-conventional": "^19.5.0",
+    "@tailwindcss/forms": "^0.5.11",
+    "autoprefixer": "^10.4.20",
     "husky": "^9.1.6",
     "lint-staged": "^15.2.10",
+    "postcss": "^8.4.47",
     "prettier": "^3.3.3",
+    "tailwindcss": "^3.4.13",
     "turbo": "^2.1.3",
     "typescript": "^5.6.2"
   },

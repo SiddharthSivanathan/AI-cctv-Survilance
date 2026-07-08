@@ -8,7 +8,10 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
+# Copy the build inputs (pyproject + package source) before installing, since
+# `pip install .` builds the local wheel and needs the source tree present.
 COPY apps/worker/pyproject.toml ./pyproject.toml
+COPY apps/worker/src ./src
 RUN pip install --upgrade pip && pip install ".[dev]"
 
 COPY apps/worker/ ./
