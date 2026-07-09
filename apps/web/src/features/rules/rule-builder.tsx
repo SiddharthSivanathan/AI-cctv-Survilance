@@ -49,7 +49,7 @@ export function RuleBuilder({ onCreated }: { onCreated?: () => void }) {
         rule_type: ruleType,
         severity,
         cooldown_seconds: cooldown,
-        config: { [ruleMeta.threshold_key]: threshold },
+        config: ruleMeta.no_threshold ? {} : { [ruleMeta.threshold_key]: threshold },
       });
       setName('');
       onCreated?.();
@@ -123,15 +123,17 @@ export function RuleBuilder({ onCreated }: { onCreated?: () => void }) {
         )}
 
         <div className="grid grid-cols-3 gap-4">
-          <div className="space-y-1.5">
-            <Label>{ruleMeta.threshold_label}</Label>
-            <Input
-              type="number"
-              min={1}
-              value={threshold}
-              onChange={(e) => setThreshold(Number(e.target.value))}
-            />
-          </div>
+          {!ruleMeta.no_threshold && (
+            <div className="space-y-1.5">
+              <Label>{ruleMeta.threshold_label}</Label>
+              <Input
+                type="number"
+                min={1}
+                value={threshold}
+                onChange={(e) => setThreshold(Number(e.target.value))}
+              />
+            </div>
+          )}
           <div className="space-y-1.5">
             <Label>Severity</Label>
             <Select value={severity} onChange={(e) => setSeverity(e.target.value)}>

@@ -39,7 +39,10 @@ export function DetectionOverlay({ cameraId, enabled }: { cameraId: string; enab
       ctx.strokeStyle = color;
       ctx.fillStyle = color;
       ctx.strokeRect(x1 * sx, y1 * sy, (x2 - x1) * sx, (y2 - y1) * sy);
-      const label = det.track_id ? `${det.class_name} #${det.track_id}` : det.class_name;
+      const parts = [det.class_name];
+      if (det.track_id) parts.push(`#${det.track_id}`);
+      if (det.duration_s != null) parts.push(`${det.duration_s.toFixed(1)}s`);
+      const label = parts.join(' ');
       ctx.fillText(label, x1 * sx, Math.max(10, y1 * sy - 4));
     }
   }, [data]);

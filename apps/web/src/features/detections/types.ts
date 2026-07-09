@@ -4,6 +4,7 @@ export interface DetectionBox {
   confidence: number;
   bbox: [number, number, number, number]; // x1,y1,x2,y2 in the 640x640 sampled frame
   track_id: number | null;
+  duration_s?: number; // seconds since this track first appeared (ByteTrack lifecycle)
 }
 
 export interface LatestDetections {

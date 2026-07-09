@@ -19,6 +19,7 @@ export interface Alert {
   event_type: string;
   severity: string;
   status: string;
+  snapshot_url: string | null;
   acknowledged: boolean;
   acknowledged_at: string | null;
   created_at: string;
@@ -34,6 +35,8 @@ export const EVENT_LABELS: Record<string, string> = {
   unattended_billing_counter: 'Counter unattended',
   billing_counter_staffed: 'Counter staffed',
   camera_offline: 'Camera offline',
+  intrusion_detected: 'Intrusion detected',
+  intrusion_ended: 'Intrusion ended',
 };
 
 export function eventLabel(type: string): string {

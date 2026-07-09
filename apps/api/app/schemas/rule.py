@@ -12,6 +12,7 @@ RULE_TYPES = {
     "occupancy_limit",
     "loitering",
     "unattended_billing_counter",
+    "intrusion",
 }
 
 

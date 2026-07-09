@@ -22,6 +22,8 @@ class IngestEventItem(BaseModel):
     severity: str = "medium"
     occurred_at: float  # unix seconds
     metadata: dict[str, Any] | None = None
+    # Base64-encoded JPEG of the frame when the rule fired (OPEN events only).
+    snapshot_b64: str | None = None
 
 
 class IngestEventsRequest(BaseModel):
@@ -53,6 +55,7 @@ class AlertResponse(BaseModel):
     event_type: str
     severity: str
     status: str
+    snapshot_url: str | None = None
     acknowledged: bool
     acknowledged_at: datetime | None
     created_at: datetime

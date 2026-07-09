@@ -24,11 +24,20 @@ export interface CreateRuleInput {
 
 export const RULE_TYPES = [
   {
+    value: 'intrusion',
+    label: 'Intrusion (zone entry)',
+    threshold_label: '',
+    threshold_key: '',
+    needs_zone: true,
+    no_threshold: true,
+  },
+  {
     value: 'queue_threshold',
     label: 'Queue too long',
     threshold_label: 'Max people in queue',
     threshold_key: 'threshold',
     needs_zone: true,
+    no_threshold: false,
   },
   {
     value: 'occupancy_limit',
@@ -36,6 +45,7 @@ export const RULE_TYPES = [
     threshold_label: 'Max people in area',
     threshold_key: 'threshold',
     needs_zone: true,
+    no_threshold: false,
   },
   {
     value: 'loitering',
@@ -43,6 +53,7 @@ export const RULE_TYPES = [
     threshold_label: 'Seconds before alert',
     threshold_key: 'threshold_seconds',
     needs_zone: true,
+    no_threshold: false,
   },
   {
     value: 'unattended_billing_counter',
@@ -50,6 +61,7 @@ export const RULE_TYPES = [
     threshold_label: 'Seconds unattended',
     threshold_key: 'threshold_seconds',
     needs_zone: true,
+    no_threshold: false,
   },
 ] as const;
 

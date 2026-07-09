@@ -51,16 +51,37 @@ class YoloDetector:
     def __init__(self) -> None:
         self._settings = get_settings()
         self._model = None
+        self._device: str | None = None
         self._allowed = set(self._settings.class_ids)
+
+    def _resolve_device(self) -> str:
+        """Pick the inference device. Uses CUDA only when it is actually
+        available; otherwise falls back to CPU. ``ai_device`` may be
+        "auto" (prefer CUDA), "cuda" (prefer CUDA), or "cpu" (force CPU)."""
+        configured = self._settings.ai_device.lower()
+        if configured == "cpu":
+            return "cpu"
+        try:
+            import torch
+
+            if torch.cuda.is_available():
+                return "cuda"
+        except Exception:  # noqa: BLE001 - torch/CUDA probing must never crash inference
+            pass
+        if configured == "cuda":
+            logger.warning("cuda_requested_but_unavailable", falling_back_to="cpu")
+        return "cpu"
 
     def _ensure_model(self):
         if self._model is None:
             from ultralytics import YOLO  # imported lazily (pulls torch)
 
+            self._device = self._resolve_device()
             logger.info(
                 "loading_model",
                 model=self._settings.model_name,
-                device=self._settings.ai_device,
+                configured_device=self._settings.ai_device,
+                resolved_device=self._device,
             )
             self._model = YOLO(self._settings.model_name)
         return self._model
@@ -73,7 +94,7 @@ class YoloDetector:
             imgsz=self._settings.model_imgsz,
             conf=self._settings.model_confidence,
             classes=self._settings.class_ids,
-            device=self._settings.ai_device,
+            device=self._device,
             verbose=False,
         )
         if not results:

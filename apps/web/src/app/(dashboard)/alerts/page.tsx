@@ -49,6 +49,14 @@ export default function AlertsPage() {
             <Card key={alert.id}>
               <CardContent className="flex items-center justify-between py-4">
                 <div className="flex items-center gap-3">
+                  {alert.snapshot_url && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={alert.snapshot_url}
+                      alt="Alert snapshot"
+                      className="h-12 w-20 rounded object-cover"
+                    />
+                  )}
                   <SeverityBadge severity={alert.severity} />
                   <div>
                     <p className="text-sm font-medium">{eventLabel(alert.event_type)}</p>

@@ -23,6 +23,8 @@ class Alert(Base, UUIDMixin, OrganizationScopedMixin):
     severity: Mapped[str] = mapped_column(String(16), nullable=False, default="medium")
     # open | acknowledged | resolved
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="open", index=True)
+    # Public URL of the frame captured when the rule fired (MinIO).
+    snapshot_url: Mapped[str | None] = mapped_column(String(1024), nullable=True)
     acknowledged: Mapped[bool] = mapped_column(default=False)
     acknowledged_by: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
     acknowledged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

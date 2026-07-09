@@ -46,6 +46,8 @@ class BusinessEvent:
     severity: str
     occurred_at: float  # unix seconds
     metadata: dict[str, Any] = field(default_factory=dict)
+    # Base64 JPEG of the firing frame (set on OPEN events only).
+    snapshot_b64: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -59,4 +61,5 @@ class BusinessEvent:
             "severity": self.severity,
             "occurred_at": self.occurred_at,
             "metadata": self.metadata,
+            "snapshot_b64": self.snapshot_b64,
         }

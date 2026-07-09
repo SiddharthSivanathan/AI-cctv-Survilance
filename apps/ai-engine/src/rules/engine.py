@@ -46,7 +46,51 @@ class RuleEngine:
                 events += self._eval_loitering(state, rule, zone, persons, now)
             elif rule.rule_type == "unattended_billing_counter":
                 events += self._eval_unattended(state, rule, zone, persons, now)
+            elif rule.rule_type == "intrusion":
+                events += self._eval_intrusion(state, rule, zone, detections, now)
         return events
+
+    # ----- intrusion (object enters a zone, per track) --------------------
+
+    @staticmethod
+    def _rule_classes(rule: Rule, default: tuple[str, ...]) -> set[str]:
+        cfg = rule.config.get("classes")
+        return set(cfg) if cfg else set(default)
+
+    def _eval_intrusion(self, state, rule: Rule, zone: Zone, detections, now) -> list[BusinessEvent]:
+        """Zone-breach intrusion: OPEN when any object of an allowed class is
+        inside the zone, RESOLVE when the zone is clear again. Presence-based (no
+        dependency on track ids, which are unreliable at low sample FPS). Class
+        filter comes from ``config.classes`` (default: person)."""
+        classes = self._rule_classes(rule, ("person",))
+        intruders = [
+            d
+            for d in detections
+            if d.class_name in classes and point_in_polygon(foot_point(d.bbox), zone.polygon)
+        ]
+        key = f"{rule.camera_id}:{rule.id}"
+        is_open = key in state.open_events
+
+        if intruders and not is_open:
+            if now >= state.cooldown_until.get(key, 0.0):
+                state.open_events[key] = now
+                present_classes = sorted({d.class_name for d in intruders})
+                return [
+                    self._event(
+                        rule, key, "intrusion_detected", "open", now,
+                        {"object_count": len(intruders), "classes": present_classes},
+                    )
+                ]
+        elif not intruders and is_open:
+            started = state.open_events.pop(key)
+            state.cooldown_until[key] = now + rule.cooldown_seconds
+            return [
+                self._event(
+                    rule, key, "intrusion_ended", "resolved", now,
+                    {"duration_seconds": int(now - started)},
+                )
+            ]
+        return []
 
     # ----- count-based (queue / occupancy) --------------------------------
 

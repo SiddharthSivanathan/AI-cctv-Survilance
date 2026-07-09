@@ -8,6 +8,9 @@ context per event from its organization_id.
 
 from __future__ import annotations
 
+import base64
+import binascii
+import io
 from datetime import UTC, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,6 +19,7 @@ from typing import Any
 
 from app.core.logging import get_logger
 from app.core.pubsub import build_message
+from app.core.storage import ObjectStorage, StorageError
 from app.db.session import set_org_context
 from app.models.alert import Alert
 from app.models.camera_event import CameraEvent
@@ -150,6 +154,7 @@ class EventService:
                 event_type=item.event_type,
                 severity=item.severity,
                 status="open",
+                snapshot_url=self._store_snapshot(item),
             )
         )
         # In-app notification (bell), in the same transaction.
@@ -168,6 +173,25 @@ class EventService:
         # Email job (dispatched after commit), gated by org preferences.
         await self._maybe_email(item, title, message, email_jobs)
         return 1
+
+    def _store_snapshot(self, item: IngestEventItem) -> str | None:
+        """Upload the event's snapshot JPEG to MinIO and return its public URL.
+        Storage failures must never block alert creation — returns None."""
+        if not item.snapshot_b64:
+            return None
+        try:
+            raw = base64.b64decode(item.snapshot_b64, validate=True)
+        except (binascii.Error, ValueError):
+            return None
+        safe_key = item.event_key.replace(":", "_")
+        key = f"snapshots/{item.organization_id}/{item.camera_id}/{safe_key}-{int(item.occurred_at)}.jpg"
+        try:
+            return ObjectStorage().upload_public(
+                io.BytesIO(raw), key=key, content_type="image/jpeg"
+            )
+        except StorageError:
+            logger.warning("snapshot_upload_failed", event_key=item.event_key)
+            return None
 
     async def _maybe_email(
         self, item: IngestEventItem, title: str, message: str, email_jobs: list[dict[str, Any]]

@@ -17,8 +17,9 @@ import structlog
 
 from src.config import get_settings
 from src.detection.detector import YoloDetector
-from src.detection.tracker import IouTracker
+from src.detection.tracker import make_tracker
 from src.detection.types import Detection
+from src.tracking.registry import TrackRegistry
 from src.redis_streams import (
     CONSUMER_GROUP,
     DETECTIONS_STREAM,
@@ -35,14 +36,30 @@ from src.rules.geometry import foot_point, point_in_polygon
 logger = structlog.get_logger("worker")
 
 
-def build_payload(camera_id: str, detections: list[Detection], ts: float) -> dict:
-    """Pure builder for the detection payload published to Redis."""
+def build_payload(
+    camera_id: str,
+    detections: list[Detection],
+    ts: float,
+    durations: dict[int, float | None] | None = None,
+) -> dict:
+    """Pure builder for the detection payload published to Redis.
+
+    ``durations`` maps track_id -> seconds-since-entry, added per detection so
+    the live overlay can show how long each tracked object has been present.
+    """
+    durations = durations or {}
     people = [d for d in detections if d.class_name == "person"]
+    items: list[dict] = []
+    for det in detections:
+        item = det.to_dict()
+        if det.track_id is not None and durations.get(det.track_id) is not None:
+            item["duration_s"] = durations[det.track_id]
+        items.append(item)
     return {
         "camera_id": camera_id,
         "ts": ts,
         "person_count": len(people),
-        "detections": [d.to_dict() for d in detections],
+        "detections": items,
     }
 
 
@@ -52,7 +69,8 @@ class DetectionWorker:
         self._settings = get_settings()
         self._consumer = consumer_name
         self._detector = YoloDetector()
-        self._trackers: dict[str, IouTracker] = {}
+        self._trackers: dict[str, object] = {}
+        self._registries: dict[str, TrackRegistry] = {}
         self._rule_engine = RuleEngine()
         self._rules_config = RulesConfigCache()
         self._event_emitter = EventEmitter()
@@ -102,12 +120,33 @@ class DetectionWorker:
             return
 
         detections = self._detector.detect(frame)
-        tracker = self._trackers.setdefault(camera_id, IouTracker())
+        tracker = self._trackers.setdefault(camera_id, make_tracker())
         detections = tracker.update(detections)
 
         now = time.time()
-        payload = build_payload(camera_id, detections, now)
+        # Track lifecycle: entry/exit/duration per object.
+        registry = self._registries.setdefault(camera_id, TrackRegistry())
+        registry.observe(detections, now)
+        durations = {
+            d.track_id: registry.duration_for(d.track_id, now)
+            for d in detections
+            if d.track_id is not None
+        }
+        payload = build_payload(camera_id, detections, now, durations)
         self._publish(camera_id, payload)
+
+        # Emit a summary when a track leaves (id, class, entry, exit, duration).
+        for info in registry.sweep_ended(now):
+            logger.info(
+                "track_ended",
+                camera_id=camera_id,
+                track_id=info.track_id,
+                object_class=info.class_name,
+                confidence=round(info.best_confidence, 4),
+                entry_ts=round(info.entry_ts, 2),
+                exit_ts=round(info.last_seen_ts, 2),
+                duration_s=round(info.duration, 2),
+            )
 
         # Rule evaluation (in-worker, DB-free). Emits business events on change.
         self._rules_config.maybe_refresh(now)
@@ -116,6 +155,12 @@ class DetectionWorker:
             camera_id, detections, self._rules_config.rules_for(camera_id), zones, now
         )
         if events:
+            # Attach a snapshot of the firing frame to OPEN events (one encode).
+            open_events = [e for e in events if e.status == "open"]
+            if open_events:
+                snapshot = self._encode_snapshot(frame)
+                for event in open_events:
+                    event.snapshot_b64 = snapshot
             self._event_emitter.emit(events)
 
         # Aggregated metrics (per-minute occupancy / footfall / queue).
@@ -164,6 +209,18 @@ class DetectionWorker:
 
         array = np.frombuffer(frame_bytes, dtype=np.uint8)
         return cv2.imdecode(array, cv2.IMREAD_COLOR)
+
+    @staticmethod
+    def _encode_snapshot(frame) -> str | None:
+        """Encode a BGR frame to a base64 JPEG for event snapshots."""
+        import base64
+
+        import cv2
+
+        ok, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 75])
+        if not ok:
+            return None
+        return base64.b64encode(buf.tobytes()).decode("ascii")
 
 
 def _as_str(value) -> str:

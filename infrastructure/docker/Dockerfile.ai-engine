@@ -19,18 +19,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy the build inputs (pyproject + package source) before installing, since
-# `pip install .` builds the local wheel and needs the source tree present.
+# Install CPU-only torch/torchvision FIRST, keyed only on pyproject so source
+# edits don't re-trigger the multi-minute torch download. The default PyPI
+# aarch64 torch wheel pulls ~1.5GB of NVIDIA CUDA libraries useless on this
+# CPU/arm64 target; the CPU index avoids them and satisfies ultralytics' torch
+# requirement so the ml extra below won't pull the CUDA variant.
 COPY apps/ai-engine/pyproject.toml ./pyproject.toml
-COPY apps/ai-engine/src ./src
-# Install CPU-only torch/torchvision from PyTorch's CPU index FIRST. The default
-# PyPI aarch64 torch wheel pulls ~1.5GB of NVIDIA CUDA libraries that are useless
-# on this CPU/arm64 target (V1 is CPU inference). Pre-installing the CPU build
-# satisfies ultralytics' torch requirement, so the ml extra below won't pull the
-# CUDA variant.
 RUN pip install --upgrade pip \
-    && pip install --index-url https://download.pytorch.org/whl/cpu torch torchvision \
-    && pip install ".[dev,ml]"
+    && pip install --index-url https://download.pytorch.org/whl/cpu torch torchvision
+# Then the source + remaining deps. `pip install .` builds the local wheel and
+# needs the source tree; torch is already installed, so it is not reinstalled.
+COPY apps/ai-engine/src ./src
+RUN pip install ".[dev,ml]"
 
 COPY apps/ai-engine/ ./
 

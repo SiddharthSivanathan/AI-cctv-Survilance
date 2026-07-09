@@ -1,14 +1,21 @@
 """Multi-object tracking.
 
-V1 ships a deterministic IOU tracker (pure Python, unit-testable) behind a
-simple interface. ByteTrack (via `supervision`) is the intended production
-tracker and can replace `IouTracker` without changing the worker — it produces
-the same track-id-annotated Detections.
+Production tracking uses ByteTrack (via `supervision`) — `ByteTrackTracker`.
+A deterministic, dependency-free IOU tracker (`IouTracker`) remains as a
+unit-testable fallback used when supervision/numpy are unavailable. Both share
+the same interface: ``update(detections) -> detections`` (track ids assigned in
+place), so the worker is agnostic to which one it holds.
 """
 
 from __future__ import annotations
 
+import structlog
+
 from src.detection.types import Detection
+
+logger = structlog.get_logger("tracker")
+
+# Common protocol: any tracker exposes ``update(list[Detection]) -> list[Detection]``.
 
 
 def iou(a: tuple[float, float, float, float], b: tuple[float, float, float, float]) -> float:
@@ -67,3 +74,66 @@ class IouTracker:
                     self._tracks[tid] = (cls, bbox, age + 1)
 
         return detections
+
+
+class ByteTrackTracker:
+    """ByteTrack multi-object tracker (via the ``supervision`` library).
+
+    Stateful per camera: keep one instance per camera stream. Assigns stable
+    track ids across frames, handling occlusions/misses far better than the
+    greedy IOU tracker. Same interface as ``IouTracker``.
+    """
+
+    def __init__(self) -> None:
+        import warnings
+
+        import supervision as sv  # lazy: pulls numpy
+
+        # sv.ByteTrack is deprecated in supervision 0.29 (removed in 0.30) but is
+        # the ByteTrack implementation shipped today; pyproject pins <0.30.
+        # minimum_consecutive_frames=1 assigns a track id on first sighting —
+        # the default withholds ids for several frames, which at low sample FPS
+        # leaves most detections id-less. lost_track_buffer keeps ids stable
+        # across brief occlusions/misses.
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", FutureWarning)
+            self._tracker = sv.ByteTrack(
+                minimum_consecutive_frames=1,
+                lost_track_buffer=60,
+            )
+        self._sv = sv
+
+    def update(self, detections: list[Detection]) -> list[Detection]:
+        import numpy as np
+
+        if not detections:
+            # Still advance the tracker so lost tracks age out correctly.
+            self._tracker.update_with_detections(self._sv.Detections.empty())
+            return detections
+
+        sv_det = self._sv.Detections(
+            xyxy=np.array([d.bbox for d in detections], dtype=float),
+            confidence=np.array([d.confidence for d in detections], dtype=float),
+            class_id=np.array([d.class_id for d in detections], dtype=int),
+        )
+        tracked = self._tracker.update_with_detections(sv_det)
+
+        # Map assigned track ids back onto our Detection objects by bbox. ByteTrack
+        # may not confirm every detection on its first frame; those stay id-less.
+        by_box: dict[tuple, int] = {}
+        if tracked.tracker_id is not None:
+            for box, tid in zip(tracked.xyxy, tracked.tracker_id, strict=False):
+                by_box[tuple(round(float(v), 2) for v in box)] = int(tid)
+        for det in detections:
+            det.track_id = by_box.get(tuple(round(float(v), 2) for v in det.bbox))
+        return detections
+
+
+def make_tracker():
+    """Return the best available tracker: ByteTrack if supervision imports,
+    else the pure-Python IOU tracker (keeps the engine working headless/in tests)."""
+    try:
+        return ByteTrackTracker()
+    except Exception as exc:  # noqa: BLE001 - fall back rather than crash the worker
+        logger.warning("bytetrack_unavailable_falling_back_to_iou", error=str(exc))
+        return IouTracker()
