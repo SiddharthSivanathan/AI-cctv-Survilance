@@ -30,6 +30,16 @@ export const RULE_TYPES = [
     threshold_key: '',
     needs_zone: true,
     no_threshold: true,
+    needs_line: false,
+  },
+  {
+    value: 'line_crossing',
+    label: 'Line crossing (tripwire)',
+    threshold_label: '',
+    threshold_key: '',
+    needs_zone: false,
+    no_threshold: true,
+    needs_line: true,
   },
   {
     value: 'queue_threshold',
@@ -38,6 +48,7 @@ export const RULE_TYPES = [
     threshold_key: 'threshold',
     needs_zone: true,
     no_threshold: false,
+    needs_line: false,
   },
   {
     value: 'occupancy_limit',
@@ -46,6 +57,7 @@ export const RULE_TYPES = [
     threshold_key: 'threshold',
     needs_zone: true,
     no_threshold: false,
+    needs_line: false,
   },
   {
     value: 'loitering',
@@ -54,6 +66,7 @@ export const RULE_TYPES = [
     threshold_key: 'threshold_seconds',
     needs_zone: true,
     no_threshold: false,
+    needs_line: false,
   },
   {
     value: 'unattended_billing_counter',
@@ -62,6 +75,7 @@ export const RULE_TYPES = [
     threshold_key: 'threshold_seconds',
     needs_zone: true,
     no_threshold: false,
+    needs_line: false,
   },
 ] as const;
 

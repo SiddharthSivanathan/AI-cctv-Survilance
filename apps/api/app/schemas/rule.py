@@ -13,6 +13,7 @@ RULE_TYPES = {
     "loitering",
     "unattended_billing_counter",
     "intrusion",
+    "line_crossing",
 }
 
 

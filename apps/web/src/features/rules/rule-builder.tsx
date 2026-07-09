@@ -14,6 +14,7 @@ import {
   Select,
 } from '@visionops/ui';
 import { ZoneEditor } from '@/components/zone-editor';
+import { LineEditor, type LineValue } from '@/components/line-editor';
 import { useCamera, useCameras } from '@/features/cameras/hooks';
 import { useZones } from '@/features/zones/hooks';
 import { useCreateRule } from './hooks';
@@ -31,6 +32,7 @@ export function RuleBuilder({ onCreated }: { onCreated?: () => void }) {
   const [severity, setSeverity] = useState('medium');
   const [cooldown, setCooldown] = useState(300);
   const [name, setName] = useState('');
+  const [lineValue, setLineValue] = useState<LineValue>({ line: [], direction: 'both' });
   const [error, setError] = useState<string | null>(null);
 
   const camera = useCamera(cameraId);
@@ -41,15 +43,22 @@ export function RuleBuilder({ onCreated }: { onCreated?: () => void }) {
     setError(null);
     if (!cameraId) return setError('Select a camera.');
     if (ruleMeta.needs_zone && !zoneId) return setError('Select or create a zone.');
+    if (ruleMeta.needs_line && lineValue.line.length !== 2)
+      return setError('Draw a crossing line (two points).');
+    const config = ruleMeta.needs_line
+      ? { line: lineValue.line, direction: lineValue.direction }
+      : ruleMeta.no_threshold
+        ? {}
+        : { [ruleMeta.threshold_key]: threshold };
     try {
       await createRule.mutateAsync({
         camera_id: cameraId,
-        zone_id: zoneId || null,
+        zone_id: ruleMeta.needs_zone ? zoneId || null : null,
         name: name || ruleMeta.label,
         rule_type: ruleType,
         severity,
         cooldown_seconds: cooldown,
-        config: ruleMeta.no_threshold ? {} : { [ruleMeta.threshold_key]: threshold },
+        config,
       });
       setName('');
       onCreated?.();
@@ -99,7 +108,7 @@ export function RuleBuilder({ onCreated }: { onCreated?: () => void }) {
           </div>
         </div>
 
-        {cameraId && (
+        {cameraId && ruleMeta.needs_zone && (
           <>
             <div className="space-y-1.5">
               <Label>Zone</Label>
@@ -120,6 +129,13 @@ export function RuleBuilder({ onCreated }: { onCreated?: () => void }) {
               </div>
             </details>
           </>
+        )}
+
+        {cameraId && ruleMeta.needs_line && (
+          <div className="space-y-1.5">
+            <Label>Crossing line</Label>
+            <LineEditor thumbnailUrl={camera.data?.thumbnail_url} onChange={setLineValue} />
+          </div>
         )}
 
         <div className="grid grid-cols-3 gap-4">

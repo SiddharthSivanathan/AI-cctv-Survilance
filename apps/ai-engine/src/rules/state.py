@@ -19,3 +19,5 @@ class CameraState:
     loiter_entered: dict[tuple[str, int], float] = field(default_factory=dict)
     # rule_id -> timestamp the zone became empty (unattended counter)
     absence_since: dict[str, float] = field(default_factory=dict)
+    # (rule_id, track_id) -> last side of the line (+1/-1) for line-crossing
+    line_side: dict[tuple[str, int], int] = field(default_factory=dict)

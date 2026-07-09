@@ -8,7 +8,7 @@ Pure and deterministic given (detections, rules, zones, now) — fully testable.
 from __future__ import annotations
 
 from src.detection.types import Detection
-from src.rules.geometry import count_people_in_zone, foot_point, point_in_polygon
+from src.rules.geometry import count_people_in_zone, foot_point, point_in_polygon, side_of_line
 from src.rules.state import CameraState
 from src.rules.types import BusinessEvent, Rule, Zone
 
@@ -36,6 +36,11 @@ class RuleEngine:
         events: list[BusinessEvent] = []
 
         for rule in rules:
+            # Line crossing uses a line from config, not a polygon zone.
+            if rule.rule_type == "line_crossing":
+                events += self._eval_line_crossing(state, rule, detections, now)
+                continue
+
             zone = zones.get(rule.zone_id) if rule.zone_id else None
             if zone is None:
                 continue
@@ -91,6 +96,56 @@ class RuleEngine:
                 )
             ]
         return []
+
+    # ----- line crossing (per track, directional) -------------------------
+
+    def _eval_line_crossing(self, state, rule: Rule, detections, now) -> list[BusinessEvent]:
+        """Emit a directional crossing event when a tracked object's foot point
+        flips from one side of the configured line to the other.
+
+        config: ``{"line": [[x1,y1],[x2,y2]], "direction": "in"|"out"|"both"}``.
+        A cross from the right side (-1) to the left (+1) is "in"; the reverse is
+        "out". Requires track ids (raise the camera's sample FPS for reliability)."""
+        line = rule.config.get("line")
+        if not isinstance(line, list) or len(line) != 2:
+            return []
+        a, b = (float(line[0][0]), float(line[0][1])), (float(line[1][0]), float(line[1][1]))
+        classes = self._rule_classes(rule, ("person",))
+        wanted = rule.config.get("direction", "both")
+        events: list[BusinessEvent] = []
+        seen: set[int] = set()
+
+        for det in detections:
+            if det.class_name not in classes or det.track_id is None:
+                continue
+            side = side_of_line(foot_point(det.bbox), a, b)
+            if side == 0:
+                continue
+            seen.add(det.track_id)
+            skey = (rule.id, det.track_id)
+            prev = state.line_side.get(skey)
+            state.line_side[skey] = side
+            if prev is None or prev == side:
+                continue
+            direction = "in" if side > 0 else "out"
+            ckey = f"{rule.camera_id}:{rule.id}:{det.track_id}"
+            if wanted not in ("both", direction) or now < state.cooldown_until.get(ckey, 0.0):
+                continue
+            state.cooldown_until[ckey] = now + rule.cooldown_seconds
+            # Unique key per crossing — each crossing is its own (momentary) alert.
+            event_key = f"{ckey}:{int(now * 1000)}"
+            events.append(
+                self._event(
+                    rule, event_key, "line_crossed", "open", now,
+                    {"track_id": det.track_id, "direction": direction, "object_class": det.class_name},
+                )
+            )
+
+        # Drop side-state for tracks no longer visible (bounded memory).
+        for skey in list(state.line_side):
+            if skey[0] == rule.id and skey[1] not in seen:
+                del state.line_side[skey]
+        return events
 
     # ----- count-based (queue / occupancy) --------------------------------
 

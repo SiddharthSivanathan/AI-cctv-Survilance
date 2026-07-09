@@ -42,3 +42,18 @@ def count_people_in_zone(
 ) -> int:
     """Count person detections whose foot point lies inside the polygon."""
     return sum(1 for b in person_boxes if point_in_polygon(foot_point(b), polygon))
+
+
+def side_of_line(point: Point, a: Point, b: Point) -> int:
+    """Which side of the directed line A->B the point is on.
+
+    Returns +1 (left of A->B), -1 (right), or 0 (on the line), via the sign of
+    the 2D cross product. Used to detect line crossings by watching a tracked
+    object's side flip between frames.
+    """
+    cross = (b[0] - a[0]) * (point[1] - a[1]) - (b[1] - a[1]) * (point[0] - a[0])
+    if cross > 0:
+        return 1
+    if cross < 0:
+        return -1
+    return 0

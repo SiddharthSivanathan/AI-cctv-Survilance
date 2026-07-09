@@ -37,6 +37,7 @@ export const EVENT_LABELS: Record<string, string> = {
   camera_offline: 'Camera offline',
   intrusion_detected: 'Intrusion detected',
   intrusion_ended: 'Intrusion ended',
+  line_crossed: 'Line crossed',
 };
 
 export function eventLabel(type: string): string {
