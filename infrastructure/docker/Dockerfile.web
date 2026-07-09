@@ -1,6 +1,6 @@
 # VisionOps AI — Web (Next.js 15) image
 # Build context: repository root (pnpm monorepo)
-FROM node:20-slim AS base
+FROM node:26-slim AS base
 ENV PNPM_HOME=/pnpm PATH=/pnpm:$PATH
 RUN corepack enable
 WORKDIR /repo
