@@ -4,6 +4,24 @@
 
 logLevel: info
 
+# Authentication. MediaMTX's default restricts the control API (and metrics)
+# to 127.0.0.1, which blocks the gateway (a separate container) with a 401.
+# All MediaMTX ports here are internal to the Docker network (only the WebRTC
+# media UDP port and the gateway are exposed), so we allow the internal
+# services full access. Override with real credentials before exposing any of
+# these ports publicly.
+authInternalUsers:
+  - user: any
+    pass:
+    ips: []
+    permissions:
+      - action: publish
+      - action: read
+      - action: playback
+      - action: api
+      - action: metrics
+      - action: pprof
+
 # Control API (used by the gateway to add on-demand source paths). Internal only.
 api: yes
 apiAddress: :9997
@@ -26,4 +44,6 @@ hls: no
 srt: no
 
 # Paths are added dynamically by the gateway via the control API.
-paths: {}
+paths:
+  demo:
+    source: publisher

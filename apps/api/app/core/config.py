@@ -106,7 +106,9 @@ class Settings(BaseSettings):
             # is not dependent on the current working directory.
             path = Path(url.database)
             if not path.is_absolute():
-                path = Path(__file__).resolve().parents[4] / path
+                env = _find_upwards(".env")
+                root = env.parent if env else Path.cwd()
+                path = root / path
             return f"sqlite+aiosqlite:///{path.as_posix()}"
 
         return value

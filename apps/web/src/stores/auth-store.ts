@@ -6,7 +6,6 @@ interface AuthState {
   accessToken: string | null;
   refreshToken: string | null;
   user: MeResponse | null;
-  hydrated: boolean;
   setSession: (result: AuthResult) => void;
   setTokens: (tokens: TokenResponse) => void;
   setUser: (user: MeResponse) => void;
@@ -19,7 +18,6 @@ export const useAuthStore = create<AuthState>()(
       accessToken: null,
       refreshToken: null,
       user: null,
-      hydrated: false,
       setSession: (result) =>
         set({
           accessToken: result.tokens.access_token,
@@ -33,14 +31,13 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'visionops-auth',
+      // Hydration completion is tracked reactively via `persist.onFinishHydration`
+      // in useAuth(), so no custom `hydrated` flag is needed here.
       partialize: (state) => ({
         accessToken: state.accessToken,
         refreshToken: state.refreshToken,
         user: state.user,
       }),
-      onRehydrateStorage: () => (state) => {
-        if (state) state.hydrated = true;
-      },
     },
   ),
 );

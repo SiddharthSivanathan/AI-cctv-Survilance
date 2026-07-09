@@ -126,15 +126,25 @@ services:
         condition: service_started
 
   mediamtx:
-    image: bluenviron/mediamtx:latest
+    # Pinned: `latest` silently bumped to a version whose control API is
+    # auth-restricted by default, breaking gateway provisioning.
+    image: bluenviron/mediamtx:1.19.2
     container_name: visionops-mediamtx
     restart: unless-stopped
     volumes:
       - ./infrastructure/docker/mediamtx.yml:/mediamtx.yml:ro
     ports:
-      # WebRTC media (ICE) — must be reachable by the browser. API (9997) and
-      # WebRTC signaling (8889) stay internal; the gateway proxies them.
-      - '8189:8189/udp'
+      # RTSP
+      - "8554:8554"
+
+      # WebRTC media (ICE)
+      - "8189:8189/udp"
+
+      # Optional: MediaMTX API
+      - "9997:9997"
+
+      # Optional: WebRTC signalling
+      - "8889:8889"
 
   gateway:
     build:

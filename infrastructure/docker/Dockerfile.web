@@ -5,8 +5,10 @@ ENV PNPM_HOME=/pnpm PATH=/pnpm:$PATH
 RUN corepack enable
 WORKDIR /repo
 
-# ---- deps: install workspace dependencies ----
-FROM base AS deps
+# ---- build: install workspace deps, then build the web app ----
+FROM base AS build
+# Copy manifests first so the install layer is cached until a package.json or
+# the lockfile changes.
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml* .npmrc turbo.json tsconfig.base.json ./
 COPY apps/web/package.json ./apps/web/package.json
 COPY packages/ui/package.json ./packages/ui/package.json
@@ -14,11 +16,10 @@ COPY packages/utils/package.json ./packages/utils/package.json
 COPY packages/types/package.json ./packages/types/package.json
 COPY packages/sdk/package.json ./packages/sdk/package.json
 COPY packages/config/package.json ./packages/config/package.json
+# Install in this stage so the per-package node_modules (which hold the `next`
+# binary at apps/web/node_modules/.bin) are present for the build. node_modules
+# is excluded via .dockerignore, so the COPY below preserves this install.
 RUN pnpm install --frozen-lockfile=false
-
-# ---- build ----
-FROM base AS build
-COPY --from=deps /repo/node_modules ./node_modules
 COPY . .
 RUN pnpm --filter @visionops/web build
 

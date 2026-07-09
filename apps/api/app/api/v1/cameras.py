@@ -49,7 +49,9 @@ async def create_camera(
     service: CameraService = Depends(get_camera_service),
 ) -> CameraResponse:
     camera = await service.create(
-        organization_id=_org(ctx), actor_user_id=ctx.user.id, data=payload
+        organization_id=_org(ctx),
+        actor_user_id=ctx.user.id,
+        data=payload,
     )
     return CameraResponse.model_validate(camera)
 

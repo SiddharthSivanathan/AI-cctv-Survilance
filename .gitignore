@@ -56,6 +56,11 @@ snapshots/
 *.mp4
 *.mkv
 
+# ---------- Local databases (SQLite dev/test) ----------
+*.db
+*.sqlite
+*.sqlite3
+
 # ---------- IDE / OS ----------
 .idea/
 .vscode/*

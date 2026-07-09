@@ -1,0 +1,14 @@
+# Keep build contexts clean and reproducible — never ship host-built artifacts.
+**/node_modules
+**/.next
+**/.turbo
+**/.venv
+**/__pycache__
+**/*.pyc
+**/dist
+**/coverage
+.git
+.github
+*.db
+*.log
+.DS_Store
