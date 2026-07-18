@@ -54,7 +54,7 @@ export function LineEditor({
         {thumbnailUrl && (
           <image href={thumbnailUrl} width={SIZE} height={SIZE} preserveAspectRatio="xMidYMid slice" />
         )}
-        {points.length === 2 && (
+        {points[0] && points[1] && (
           <line
             x1={points[0][0]}
             y1={points[0][1]}
