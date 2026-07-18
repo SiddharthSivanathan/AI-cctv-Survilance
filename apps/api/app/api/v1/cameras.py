@@ -8,7 +8,6 @@ import uuid
 from fastapi import APIRouter, Depends, Query, status
 
 from app.core.redis_client import get_redis
-
 from app.core.deps import (
     AuthContext,
     get_camera_service,
@@ -53,6 +52,9 @@ async def create_camera(
         actor_user_id=ctx.user.id,
         data=payload,
     )
+
+    await service._cameras.session.refresh(camera)
+
     return CameraResponse.model_validate(camera)
 
 
@@ -104,13 +106,21 @@ async def latest_detections(
     when no recent detections exist.
     """
     await service.get(camera_id, _org(ctx))  # 404 if not in org
-    empty = {"camera_id": str(camera_id), "person_count": 0, "detections": []}
+
+    empty = {
+        "camera_id": str(camera_id),
+        "person_count": 0,
+        "detections": [],
+    }
+
     try:
         raw = await get_redis().get(f"detections:latest:{camera_id}")
-    except Exception:  # noqa: BLE001 - Redis optional for this read
+    except Exception:  # noqa: BLE001
         return empty
+
     if not raw:
         return empty
+
     try:
         return json.loads(raw)
     except (ValueError, TypeError):
@@ -147,5 +157,7 @@ async def delete_camera(
     service: CameraService = Depends(get_camera_service),
 ) -> None:
     await service.delete(
-        camera_id=camera_id, organization_id=_org(ctx), actor_user_id=ctx.user.id
+        camera_id=camera_id,
+        organization_id=_org(ctx),
+        actor_user_id=ctx.user.id,
     )
